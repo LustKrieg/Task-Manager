@@ -11,3 +11,4 @@ root.title("Roberto 0.1")
 root.resizable(False, False) # Prevents both horizontal and vertical resizing
 
 root.mainloop()
+
