@@ -54,10 +54,10 @@ def get_active_tasks():
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT * FROM tasks
+        SELECT id, title FROM tasks
         WHERE completed = 0
         ORDER BY created_at DESC
-   ''')
+    ''')
     
     tasks = cursor.fetchall()
     conn.close()
@@ -87,7 +87,7 @@ def mark_complete(task_id):
         UPDATE tasks
         SET completed = 1
         WHERE id = ?
-    ''', (task_id))
+    ''', (task_id,))  # ✅ FIXED: must be (task_id,) not (task_id)
 
     conn.commit()
     conn.close()
