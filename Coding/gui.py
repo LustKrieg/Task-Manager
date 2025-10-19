@@ -20,6 +20,8 @@ class TaskManagerApp:
             input_frame,
             font=("SF Pro Text", 16),
             bg="#F2F2F7",
+            fg="black",              # ✅ Force text color to black
+            insertbackground="black",    # ✅ Makes the blinking cursor black too
             relief=tk.FLAT,
             borderwidth=10
         )
@@ -92,6 +94,7 @@ class TaskManagerApp:
                 task_container,
                 text=title,
                 font=("SF Pro Text", 14),
+                fg="black",
                 bg="white",
                 anchor="w"
             )
