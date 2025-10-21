@@ -2,10 +2,9 @@
 import sqlite3
 from datetime import datetime
 
-
 DATABASE_NAME = "tasks.db"
 
-# Function 0 -- Getting the Connection
+# Function 0 -- Getting the Connection, "Create and return a database connection"
 def get_connection():
     conn = sqlite3.connect(DATABASE_NAME)
     return conn
