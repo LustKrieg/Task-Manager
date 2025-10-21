@@ -161,7 +161,7 @@ class TaskManagerApp:
             text_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
             # Task text (with strikethrough if completed)
-            display_title = title if not completed else f"~~{title}~~"
+            display_title = title if not completed else f"{title}"
             text_color = "black" if not completed else "#8E8E93"
             
             task_label = tk.Label(
