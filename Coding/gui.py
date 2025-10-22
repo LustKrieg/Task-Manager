@@ -9,7 +9,7 @@ class TaskManagerApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Task Manager")
-        self.root.geometry("400x700")
+        self.root.geometry("600x800")
         self.root.configure(bg="white")
 
         # Input frame at top
