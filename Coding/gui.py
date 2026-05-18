@@ -139,18 +139,23 @@ class TaskManagerApp:
 
         # Display each task
         for task in tasks:
-            # Unpack all 4 values from database
+            # FIX START: Correctly unpack all 4 values from the database tuple
             task_id = task[0]
             title = task[1]
-            completed = task[1]
-            created_at = task[1]
+            completed = task[2]  # This should be 0 (False) or 1 (True)
+            created_at = task[3]
+            # FIX END
 
-            # Format date/time (from "2025-10-21 14:30:45" to "Oct 21, 2:30 PM")
+            # Format date/time (from "2025.10.21 14:30" to "Oct 21, 2:30 PM")
             try:
-                dt = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S')
+                # Use the format string that matches how you saved it in database.py
+                dt = datetime.strptime(created_at, '%Y.%m.%d %H:%M')
                 date_str = dt.strftime('%b %d, %I:%M %p')
-            except:
-                date_str = created_at
+            except ValueError:
+                # Handle cases where the date format in the DB might be wrong
+                date_str = f"Date Error: {created_at}"
+            except Exception as e:
+                date_str = f"An unexpected error occurred: {e}"
 
             # Task container
             task_container = tk.Frame(self.task_frame, bg="white")
@@ -161,12 +166,13 @@ class TaskManagerApp:
             text_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
             # Task text (with strikethrough if completed)
-            display_title = title if not completed else f"{title}"
+            # Strikethrough display needs specific configuration/tags in standard Tkinter Label which is complex.
+            # We will use color change for simplicity as you did:
             text_color = "black" if not completed else "#8E8E93"
             
             task_label = tk.Label(
                 text_container,
-                text=display_title,
+                text=title,
                 font=("SF Pro Text", 14),
                 fg=text_color,
                 bg="white",

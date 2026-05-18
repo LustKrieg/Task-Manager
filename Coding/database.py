@@ -1,4 +1,4 @@
-# Database
+# Database (FIXED VERSION)
 import sqlite3
 from datetime import datetime
 
@@ -36,7 +36,7 @@ def add_task(title):
     conn = get_connection()
     cursor = conn.cursor()
     
-    created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    created_at = datetime.now().strftime('%Y.%m.%d %H:%M') # Switched format to match GUI expectations
     
     cursor.execute('''
         INSERT INTO tasks (title, completed, created_at)
@@ -47,13 +47,13 @@ def add_task(title):
     conn.close()
     return True
 
-# Function 3 -- Show Me What's Not Done 
+# Function 3 -- Show Me What's Not Done (FIXED: Selects all columns)
 def get_active_tasks():
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT id, title FROM tasks
+        SELECT id, title, completed, created_at FROM tasks
         WHERE completed = 0
         ORDER BY created_at DESC
     ''')
@@ -86,12 +86,10 @@ def mark_complete(task_id):
         UPDATE tasks
         SET completed = 1
         WHERE id = ?
-    ''', (task_id,))  # ✅ FIXED: must be (task_id,) not (task_id)
+    ''', (task_id,))
 
     conn.commit()
     conn.close()
-
-  # cursor.execute(f'... WHERE id = {task_id}')  # ❌ Hackable!
 
 # Function 6 -- Remove It Forever
 def delete_task(task_id):
