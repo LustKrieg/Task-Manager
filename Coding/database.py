@@ -36,7 +36,7 @@ def add_task(title):
     conn = get_connection()
     cursor = conn.cursor()
     
-    created_at = datetime.now().strftime('%Y.%m.%d %H:%M') # Switched format to match GUI expectations
+    created_at = datetime.now().strftime('%Y-%m-%d %H:%M') # Switched format to match GUI expectations
     
     cursor.execute('''
         INSERT INTO tasks (title, completed, created_at)
