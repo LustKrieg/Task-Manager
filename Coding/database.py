@@ -1,10 +1,10 @@
-# Database (FIXED VERSION)
+# Database for the Task Manager
 import sqlite3
 from datetime import datetime
 
 DATABASE_NAME = "tasks.db"
 
-# Function 0 -- Getting the Connection, "Create and return a database connection"
+# Function 0 -- Database connection
 def get_connection():
     conn = sqlite3.connect(DATABASE_NAME)
     return conn
@@ -36,7 +36,7 @@ def add_task(title):
     conn = get_connection()
     cursor = conn.cursor()
     
-    created_at = datetime.now().strftime('%Y-%m-%d %H:%M') # Switched format to match GUI expectations
+    created_at = datetime.now().isoformat()
     
     cursor.execute('''
         INSERT INTO tasks (title, completed, created_at)
@@ -47,7 +47,7 @@ def add_task(title):
     conn.close()
     return True
 
-# Function 3 -- Show Me What's Not Done (FIXED: Selects all columns)
+# Function 3 -- Show Me What's Not Done
 def get_active_tasks():
     conn = get_connection()
     cursor = conn.cursor()
