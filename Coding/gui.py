@@ -87,6 +87,21 @@ class TaskManagerApp:
         canvas.create_window((0, 0), window=self.task_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
 
+        self.root.bind_all(
+            "<MouseWheel>",
+            lambda e:canvas.yview_scroll(-1 if e.delta > 0 else 1, "units")
+        )
+
+        self.root.bind_all(
+            "<Button-4>",
+            lambda e: canvas.yview_scroll(-1, "units")
+        )
+
+        self.root.bind_all(
+            "<Button-5>",
+            lambda e: canvas.yview_scroll(1, "units")
+        )
+
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=20)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
@@ -100,7 +115,6 @@ class TaskManagerApp:
         self.root.mainloop()
 
     def add_task(self):
-        """Add a new task when + button is clicked"""
         title = self.task_entry.get()
 
         if title.strip():
@@ -110,7 +124,6 @@ class TaskManagerApp:
                 self.load_tasks()
 
     def show_active_tasks(self):
-        """Switch to active tasks view"""
         self.current_view = "active"
         # Update button styles
         self.active_tab_btn.configure(bg="#007AFF", fg="white")
@@ -118,7 +131,6 @@ class TaskManagerApp:
         self.load_tasks()
 
     def show_completed_tasks(self):
-        """Switch to completed tasks view"""
         self.current_view = "completed"
         # Update button styles
         self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
@@ -126,7 +138,6 @@ class TaskManagerApp:
         self.load_tasks()
 
     def load_tasks(self):
-        """Load and display tasks based on current view"""
         # Clear existing tasks
         for widget in self.task_frame.winfo_children():
             widget.destroy()
@@ -139,17 +150,15 @@ class TaskManagerApp:
 
         # Display each task
         for task in tasks:
-            # FIX START: Correctly unpack all 4 values from the database tuple
             task_id = task[0]
             title = task[1]
-            completed = task[2]  # This should be 0 (False) or 1 (True)
+            completed = task[2]
             created_at = task[3]
-            # FIX END
-
+            
             # Format date/time (from "2025.10.21 14:30" to "Oct 21, 2:30 PM")
             try:
                 # Use the format string that matches how you saved it in database.py
-                dt = datetime.strptime(created_at, '%Y.%m.%d %H:%M')
+                dt = datetime.fromisoformat(created_at)
                 date_str = dt.strftime('%b %d, %I:%M %p')
             except ValueError:
                 # Handle cases where the date format in the DB might be wrong
