@@ -8,7 +8,7 @@ class TaskManagerApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Task Manager")
-        self.root.geometry("780x500")
+        self.root.geometry("785x500")
         self.root.configure(bg="white")
 
         #Main Container
@@ -19,7 +19,7 @@ class TaskManagerApp:
             main_container,
             bg="#E5E5EA",
             bd=2,
-            width=400
+            width=280
         )
         sidebar_frame.pack(side=tk.LEFT, fill=tk.Y)
 
@@ -50,14 +50,26 @@ class TaskManagerApp:
             input_frame,
             text="+",
             font=("SF Pro Text", 20),
-            bg="#007AFF",
-            fg="white",
+            bg="white",
+            fg="#8E8E93",
             borderless=True,
+            borderwidth=0,
+            highlightthickness=0,
             width=50,
             height=40,
             command=self.add_task
         )
         self.add_button.pack(side=tk.LEFT, padx=(10, 0))
+
+        self.add_button.bind(
+            "<Enter>",
+            lambda e: self.add_button.configure(bg="#E5E5EA")
+        )
+
+        self.add_button.bind(
+            "<Leave>",
+            lambda e: self.add_button.configure(bg="white")
+        )
 
         # Tab buttons frame
         tab_frame = tk.Frame(self.root, bg="white")
@@ -65,7 +77,7 @@ class TaskManagerApp:
 
         # Active tasks tab button
         self.active_tab_btn = Button(
-            tab_frame,
+            sidebar_frame,
             text="Active",
             font=("SF Pro Text", 14),
             bg="#007AFF",
@@ -75,11 +87,11 @@ class TaskManagerApp:
             height=35,
             command=self.show_active_tasks
         )
-        self.active_tab_btn.pack(side=tk.LEFT, padx=(0, 5))
+        self.active_tab_btn.pack(anchor="w", pady=5, padx=10)
 
         # Completed tasks tab button
         self.completed_tab_btn = Button(
-            tab_frame,
+            sidebar_frame,
             text="Completed",
             font=("SF Pro Text", 14),
             bg="#E5E5EA",
@@ -89,7 +101,7 @@ class TaskManagerApp:
             height=35,
             command=self.show_completed_tasks
         )
-        self.completed_tab_btn.pack(side=tk.LEFT)
+        self.completed_tab_btn.pack(anchor="w", pady=5, padx=10)
 
         # Scrollable frame for tasks
         canvas = tk.Canvas(content_frame, bg="white", highlightthickness=0)
