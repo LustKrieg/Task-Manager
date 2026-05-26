@@ -4,16 +4,33 @@ import tkinter as tk
 from tkmacosx import Button
 from datetime import datetime
 
-
 class TaskManagerApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Task Manager")
-        self.root.geometry("600x800")
+        self.root.geometry("780x500")
         self.root.configure(bg="white")
 
+        #Main Container
+        main_container = tk.Frame(self.root, bg="white")
+        main_container.pack(fill=tk.BOTH, expand=True)
+
+        sidebar_frame = tk.Frame(
+            main_container,
+            bg="#E5E5EA",
+            bd=2,
+            width=400
+        )
+        sidebar_frame.pack(side=tk.LEFT, fill=tk.Y)
+
+        #Content area
+        content_frame = tk.Frame(
+            main_container, bg="white"
+        )
+        content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
         # Input frame at top
-        input_frame = tk.Frame(self.root, bg="white")
+        input_frame = tk.Frame(content_frame, bg="white")
         input_frame.pack(pady=20, padx=20, fill=tk.X)
 
         # Text entry
@@ -75,8 +92,8 @@ class TaskManagerApp:
         self.completed_tab_btn.pack(side=tk.LEFT)
 
         # Scrollable frame for tasks
-        canvas = tk.Canvas(self.root, bg="white", highlightthickness=0)
-        scrollbar = tk.Scrollbar(self.root, orient="vertical", command=canvas.yview)
+        canvas = tk.Canvas(content_frame, bg="white", highlightthickness=0)
+        scrollbar = tk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
         self.task_frame = tk.Frame(canvas, bg="white")
 
         self.task_frame.bind(
