@@ -22,6 +22,7 @@ class TaskManagerApp:
             width=280
         )
         sidebar_frame.pack(side=tk.LEFT, fill=tk.Y)
+        sidebar_frame.pack_propagate(False)
 
         #Content area
         content_frame = tk.Frame(
@@ -55,6 +56,7 @@ class TaskManagerApp:
             borderless=True,
             borderwidth=0,
             highlightthickness=0,
+            focuscolor=self.root["bg"],
             width=50,
             height=40,
             command=self.add_task
@@ -83,8 +85,8 @@ class TaskManagerApp:
             bg="#007AFF",
             fg="white",
             borderless=True,
-            width=100,
-            height=35,
+            width=130,
+            height=60,
             command=self.show_active_tasks
         )
         self.active_tab_btn.pack(anchor="w", pady=5, padx=10)
@@ -97,8 +99,8 @@ class TaskManagerApp:
             bg="#E5E5EA",
             fg="black",
             borderless=True,
-            width=100,
-            height=35,
+            width=130,
+            height=60,
             command=self.show_completed_tasks
         )
         self.completed_tab_btn.pack(anchor="w", pady=5, padx=10)
@@ -258,6 +260,14 @@ class TaskManagerApp:
                 command=lambda tid=task_id: self.delete_task(tid)
             )
             delete_btn.pack(side=tk.RIGHT)
+
+            separator = tk.Frame(
+                self.task_frame,
+                bg="#D1D1D6",
+                height=1
+            )
+
+            separator.pack(fill=tk.X, padx=10, pady=5)
 
     def complete_task(self, task_id):
         """Mark task as complete"""
