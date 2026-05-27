@@ -30,6 +30,15 @@ class TaskManagerApp:
         )
         content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
+        self.section_title = tk.Label(
+            content_frame,
+            text="Active",
+            font=("SF Pro Display", 28, "bold"),
+            bg="white",
+            fg="black"
+        )
+        self.section_title.pack(anchor="w", padx=20, pady=(20, 10))
+
         # Input frame at top
         input_frame = tk.Frame(content_frame, bg="white")
         input_frame.pack(pady=20, padx=20, fill=tk.X)
@@ -78,18 +87,21 @@ class TaskManagerApp:
         tab_frame.pack(pady=(0, 10), padx=20, fill=tk.X)
 
         # Active tasks tab button
-        self.active_tab_btn = Button(
+        self.active_tab_btn = tk.Label(
             sidebar_frame,
-            text="Active",
+            text="☰ Active",
             font=("SF Pro Text", 14),
-            bg="#007AFF",
-            fg="white",
-            borderless=True,
-            width=130,
-            height=60,
-            command=self.show_active_tasks
+            bg="#D1D1D6",
+            fg="black",
+            padx=32,
+            pady=19
         )
-        self.active_tab_btn.pack(anchor="w", pady=5, padx=10)
+        self.active_tab_btn.pack(anchor="w", padx=10, pady=5)
+
+        self.active_tab_btn.bind(
+            "<Button-1>",
+            lambda e: self.show_active_tasks()
+        )
 
         # Completed tasks tab button
         self.completed_tab_btn = Button(
@@ -157,15 +169,17 @@ class TaskManagerApp:
     def show_active_tasks(self):
         self.current_view = "active"
         # Update button styles
-        self.active_tab_btn.configure(bg="#007AFF", fg="white")
+        self.active_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.completed_tab_btn.configure(bg="#E5E5EA", fg="black")
+        self.section_title.configure(text="Active")
         self.load_tasks()
 
     def show_completed_tasks(self):
         self.current_view = "completed"
         # Update button styles
+        self.section_title.configure(text="Completed")
         self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
-        self.completed_tab_btn.configure(bg="#007AFF", fg="white")
+        self.completed_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.load_tasks()
 
     def load_tasks(self):
