@@ -248,47 +248,86 @@ class TaskManagerApp:
             date_label.pack(anchor="w")
 
             # Buttons on right side
-            if self.current_view == "active":
-                # Complete button (only for active tasks)
-                complete_btn = Button(
-                    task_container,
-                    text="✓",
-                    font=("SF Pro Text", 16),
-                    bg="#34C759",
-                    fg="white",
-                    borderless=True,
-                    width=35,
-                    height=35,
-                    command=lambda tid=task_id: self.complete_task(tid)
-                )
-                complete_btn.pack(side=tk.RIGHT, padx=5)
-
-            # Delete button (available in both views)
-            delete_btn = Button(
+            # Complete button (only for active tasks)
+    # Completion circle
+            circle_btn = tk.Label(
                 task_container,
-                text="×",
-                font=("SF Pro Text", 20),
-                bg="#FF3B30",
-                fg="white",
-                borderless=True,
-                width=35,
-                height=35,
-                command=lambda tid=task_id: self.delete_task(tid)
+                text="○" if not completed else "◉",
+                font=("SF Pro Text", 18),
+                bg="white",
+                fg="#8E8E93"
             )
-            delete_btn.pack(side=tk.RIGHT)
+
+            circle_btn.pack(side=tk.RIGHT, padx=10)
+
+            # Hover enter
+            circle_btn.bind(
+                "<Enter>",
+                lambda e, btn=circle_btn:
+                    btn.configure(fg="#D30000")
+            )
+
+            # Hover leave
+            circle_btn.bind(
+                "<Leave>",
+                lambda e, btn=circle_btn:
+                    btn.configure(
+                        fg="#8E8E93" if btn.cget("text") == "○"
+                        else "#D30000"
+                    )
+            )
+
+            # Mouse press
+            circle_btn.bind(
+                "<ButtonPress-1>",
+                lambda e, btn=circle_btn:
+                    btn.configure(fg="gray")
+            )
+
+            # ACTIVE TASKS
+            if not completed:
+                circle_btn.bind(
+                    "<Button-1>",
+                    lambda e, tid=task_id, btn=circle_btn:
+                        self.animate_complete(btn, tid)
+                )
+
+            # COMPLETED TASKS
+            else:
+                circle_btn.bind(
+                    "<Button-1>",
+                    lambda e, tid=task_id:
+                        self.undo_task(tid)
+                )
 
             separator = tk.Frame(
                 self.task_frame,
                 bg="#D1D1D6",
                 height=1
             )
-
             separator.pack(fill=tk.X, padx=10, pady=5)
 
     def complete_task(self, task_id):
         """Mark task as complete"""
         db.mark_complete(task_id)
         self.load_tasks()
+
+    def undo_task(self, task_id):
+        db.mark_active(task_id)
+        self.load_tasks()
+
+    def animate_complete(self, button, task_id):
+        # pressed color
+        button.configure(
+            text="◉",
+            fg="#D30000"
+        )
+
+        # wait 250ms
+        self.root.after(
+            250,
+            lambda: self.complete_task(task_id)
+        )
 
     def delete_task(self, task_id):
         """Delete a task"""
