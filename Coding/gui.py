@@ -55,6 +55,11 @@ class TaskManagerApp:
         )
         self.task_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
+        self.task_entry.bind(
+            "<Return>",
+            lambda e: self.add_task()
+        )
+
         # Add button
         self.add_button = Button(
             input_frame,
