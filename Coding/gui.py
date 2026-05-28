@@ -158,6 +158,12 @@ class TaskManagerApp:
         # Track current view
         self.current_view = "active"
 
+        # Right click popup menu
+        self.task_menu = tk.Menu(self.root, tearoff=0)
+        self.task_menu.add_command(label="Delete",command=self.popup_delete_task)
+
+        self.selected_task_id = None
+
         # Load active tasks by default
         self.load_tasks()
 
@@ -188,6 +194,18 @@ class TaskManagerApp:
         self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.completed_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.load_tasks()
+
+
+
+    # RIGHT CLICK SYSTEM
+    def bind_right_click(self, widget, tid):
+        def handler(event):
+            self.selected_task_id = tid
+            self.task_menu.tk_popup(event.x_root, event.y_root)
+            self.task_menu.grab_release()
+
+        widget.bind("<Button-3>", handler)
+        widget.bind("<Button-2>", handler)  # mac support
 
     def load_tasks(self):
         # Clear existing tasks
@@ -228,7 +246,7 @@ class TaskManagerApp:
 
             # Task text (with strikethrough if completed)
             # Strikethrough display needs specific configuration/tags in standard Tkinter Label which is complex.
-            # We will use color change for simplicity as you did:
+            # We will use color change for simplicity:
             text_color = "black" if not completed else "#8E8E93"
             
             task_label = tk.Label(
@@ -305,6 +323,10 @@ class TaskManagerApp:
                         self.undo_task(tid)
                 )
 
+            # right click ON ALL elements
+            for w in (task_container, text_container, task_label, date_label, circle_btn):
+                self.bind_right_click(w, task_id)
+
             separator = tk.Frame(
                 self.task_frame,
                 bg="#D1D1D6",
@@ -313,7 +335,6 @@ class TaskManagerApp:
             separator.pack(fill=tk.X, padx=10, pady=5)
 
     def complete_task(self, task_id):
-        """Mark task as complete"""
         db.mark_complete(task_id)
         self.load_tasks()
 
@@ -321,21 +342,20 @@ class TaskManagerApp:
         db.mark_active(task_id)
         self.load_tasks()
 
-    def animate_complete(self, button, task_id):
-        # pressed color
-        button.configure(
-            text="◉",
-            fg="#D30000"
-        )
+    def show_task_menu(self, event, task_id):
+        self.selected_task_id = task_id
+        self.task_menu.tk_popup(event.x_root, event.y_root)
+        self.task_menu.grab_release()
 
-        # wait 250ms
-        self.root.after(
-            250,
-            lambda: self.complete_task(task_id)
-        )
+    def popup_delete_task(self):
+        db.delete_task(self.selected_task_id)
+        self.load_tasks()
+
+    def animate_complete(self, button, task_id):
+        button.configure(text="◉", fg="#D30000")
+        self.root.after(250,lambda: self.complete_task(task_id))
 
     def delete_task(self, task_id):
-        """Delete a task"""
         db.delete_task(task_id)
         self.load_tasks()
 
