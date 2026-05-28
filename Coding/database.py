@@ -104,4 +104,18 @@ def delete_task(task_id):
     conn.commit()
     conn.close()
 
+# Function 7 -- undo functionality for completed tasks
+def mark_active(task_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        UPDATE tasks
+        SET completed = 0
+        WHERE id = ?
+    ''', (task_id,))
+
+    conn.commit()
+    conn.close()
+
 create_table()
