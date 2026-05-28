@@ -62,10 +62,11 @@ class TaskManagerApp:
             font=("SF Pro Text", 20),
             bg="white",
             fg="#8E8E93",
-            borderless=True,
+            borderless=1,
+            activebackground="#E5E5EA",
+            focuscolor="",
             borderwidth=0,
             highlightthickness=0,
-            focuscolor=self.root["bg"],
             width=50,
             height=40,
             command=self.add_task
@@ -87,21 +88,20 @@ class TaskManagerApp:
         tab_frame.pack(pady=(0, 10), padx=20, fill=tk.X)
 
         # Active tasks tab button
-        self.active_tab_btn = tk.Label(
+        self.active_tab_btn = Button(
             sidebar_frame,
-            text="☰ Active",
+            text="Active",
             font=("SF Pro Text", 14),
             bg="#D1D1D6",
             fg="black",
-            padx=32,
-            pady=19
+            borderless=1,
+            activebackground="#E5E5EA",
+            focuscolor="",
+            width=130,
+            height=60,
+            command=self.show_active_tasks
         )
-        self.active_tab_btn.pack(anchor="w", padx=10, pady=5)
-
-        self.active_tab_btn.bind(
-            "<Button-1>",
-            lambda e: self.show_active_tasks()
-        )
+        self.active_tab_btn.pack(anchor="w", pady=5, padx=10)
 
         # Completed tasks tab button
         self.completed_tab_btn = Button(
@@ -110,7 +110,9 @@ class TaskManagerApp:
             font=("SF Pro Text", 14),
             bg="#E5E5EA",
             fg="black",
-            borderless=True,
+            borderless=1,
+            activebackground="#E5E5EA",
+            focuscolor="",
             width=130,
             height=60,
             command=self.show_completed_tasks
