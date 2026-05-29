@@ -272,33 +272,15 @@ class TaskManagerApp:
 
             # Buttons on right side
             # Complete button (only for active tasks)
-    # Completion circle
+            # Completion circle
             circle_btn = tk.Label(
                 task_container,
                 text="○" if not completed else "◉",
                 font=("SF Pro Text", 18),
                 bg="white",
-                fg="#8E8E93"
+                fg="#8E8E93" if not completed else "#E30000"
             )
-
             circle_btn.pack(side=tk.RIGHT, padx=10)
-
-            # Hover enter
-            circle_btn.bind(
-                "<Enter>",
-                lambda e, btn=circle_btn:
-                    btn.configure(fg="#D30000")
-            )
-
-            # Hover leave
-            circle_btn.bind(
-                "<Leave>",
-                lambda e, btn=circle_btn:
-                    btn.configure(
-                        fg="#8E8E93" if btn.cget("text") == "○"
-                        else "#D30000"
-                    )
-            )
 
             # Mouse press
             circle_btn.bind(
@@ -310,6 +292,18 @@ class TaskManagerApp:
             # ACTIVE TASKS
             if not completed:
                 circle_btn.bind(
+                    "<Enter>",
+                    lambda e, btn=circle_btn:
+                    btn.configure(fg="#E30000")
+                )
+
+                circle_btn.bind(
+                    "<Leave>",
+                    lambda e, btn=circle_btn:
+                    btn.configure(fg="#8E8E93")
+                )
+
+                circle_btn.bind(
                     "<Button-1>",
                     lambda e, tid=task_id, btn=circle_btn:
                         self.animate_complete(btn, tid)
@@ -317,6 +311,18 @@ class TaskManagerApp:
 
             # COMPLETED TASKS
             else:
+                circle_btn.bind(
+                    "<Enter>",
+                    lambda e, btn=circle_btn:
+                    btn.configure(fg="#8E8E93")
+                )
+
+                circle_btn.bind(
+                    "<Leave>",
+                    lambda e, btn=circle_btn:
+                    btn.configure(fg="#E30000")
+                )
+
                 circle_btn.bind(
                     "<Button-1>",
                     lambda e, tid=task_id:
@@ -352,8 +358,8 @@ class TaskManagerApp:
         self.load_tasks()
 
     def animate_complete(self, button, task_id):
-        button.configure(text="◉", fg="#D30000")
-        self.root.after(250,lambda: self.complete_task(task_id))
+        button.configure(text="◉", fg="#E30000")
+        self.root.after(500,lambda: self.complete_task(task_id))
 
     def delete_task(self, task_id):
         db.delete_task(task_id)
