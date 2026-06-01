@@ -286,7 +286,7 @@ class TaskManagerApp:
             circle_btn.bind(
                 "<ButtonPress-1>",
                 lambda e, btn=circle_btn:
-                    btn.configure(fg="gray")
+                btn.configure(text="◉", fg="#8E8E93")
             )
 
             # ACTIVE TASKS
@@ -304,9 +304,9 @@ class TaskManagerApp:
                 )
 
                 circle_btn.bind(
-                    "<Button-1>",
+                    "<ButtonRelease-1>",
                     lambda e, tid=task_id, btn=circle_btn:
-                        self.animate_complete(btn, tid)
+                    self.animate_complete(btn, tid)
                 )
 
             # COMPLETED TASKS
@@ -324,9 +324,15 @@ class TaskManagerApp:
                 )
 
                 circle_btn.bind(
-                    "<Button-1>",
-                    lambda e, tid=task_id:
-                        self.undo_task(tid)
+                    "<ButtonPress-1>",
+                    lambda e, btn=circle_btn:
+                        btn.configure(text="◉", fg="#8E8E93")
+                )
+
+                circle_btn.bind(
+                    "<ButtonRelease-1>",
+                    lambda e, tid=task_id, btn=circle_btn:
+                    self.undo_task(tid)
                 )
 
             # right click ON ALL elements
