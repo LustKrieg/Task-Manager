@@ -134,7 +134,13 @@ class TaskManagerApp:
             lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
 
-        canvas.create_window((0, 0), window=self.task_frame, anchor="nw")
+        canvas_window = canvas.create_window( (0, 0), window=self.task_frame, anchor="nw")
+
+        def resize_frame(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+
+        canvas.bind("<Configure>", resize_frame)
+
         canvas.configure(yscrollcommand=scrollbar.set)
 
         self.root.bind_all(
@@ -344,7 +350,7 @@ class TaskManagerApp:
                 bg="#D1D1D6",
                 height=1
             )
-            separator.pack(fill=tk.X, padx=10, pady=5)
+            separator.pack(fill=tk.X, expand=True, pady=5)
 
     def complete_task(self, task_id):
         db.mark_complete(task_id)
