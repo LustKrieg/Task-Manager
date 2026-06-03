@@ -43,51 +43,6 @@ class TaskManagerApp:
         input_frame = tk.Frame(content_frame, bg="white")
         input_frame.pack(pady=20, padx=20, fill=tk.X)
 
-        # Text entry
-        self.task_entry = tk.Entry(
-            input_frame,
-            font=("SF Pro Text", 16),
-            bg="#F2F2F7",
-            fg="black",
-            insertbackground="black",
-            relief=tk.FLAT,
-            borderwidth=10
-        )
-        self.task_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        self.task_entry.bind(
-            "<Return>",
-            lambda e: self.add_task_from_entry(self.task_entry)
-        )
-
-        # Add button
-        self.add_button = Button(
-            input_frame,
-            text="+",
-            font=("SF Pro Text", 20),
-            bg="white",
-            fg="#8E8E93",
-            borderless=1,
-            activebackground="#E5E5EA",
-            focuscolor="",
-            borderwidth=0,
-            highlightthickness=0,
-            width=50,
-            height=40,
-            command=lambda: self.add_task_from_entry(self.task_entry)
-        )
-        self.add_button.pack(side=tk.LEFT, padx=(10, 0))
-
-        self.add_button.bind(
-            "<Enter>",
-            lambda e: self.add_button.configure(bg="#E5E5EA")
-        )
-
-        self.add_button.bind(
-            "<Leave>",
-            lambda e: self.add_button.configure(bg="white")
-        )
-
         # Tab buttons frame
         tab_frame = tk.Frame(self.root, bg="white")
         tab_frame.pack(pady=(0, 10), padx=20, fill=tk.X)
@@ -203,8 +158,6 @@ class TaskManagerApp:
         self.completed_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.load_tasks()
 
-
-
     # RIGHT CLICK SYSTEM
     def bind_right_click(self, widget, tid):
         def handler(event):
@@ -220,6 +173,7 @@ class TaskManagerApp:
         for widget in self.task_frame.winfo_children():
             widget.destroy()
 
+        # TEXT ENTRY (NEW TASK)
         empty_task = tk.Entry(
             self.task_frame,
             font=("SF Pro Text", 14),
