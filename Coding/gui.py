@@ -57,7 +57,7 @@ class TaskManagerApp:
 
         self.task_entry.bind(
             "<Return>",
-            lambda e: self.add_task()
+            lambda e: self.add_task_from_entry(self.task_entry)
         )
 
         # Add button
@@ -74,7 +74,7 @@ class TaskManagerApp:
             highlightthickness=0,
             width=50,
             height=40,
-            command=self.add_task
+            command=lambda: self.add_task_from_entry(self.task_entry)
         )
         self.add_button.pack(side=tk.LEFT, padx=(10, 0))
 
@@ -176,12 +176,14 @@ class TaskManagerApp:
     def run(self):
         self.root.mainloop()
 
-    def add_task(self):
-        title = self.task_entry.get()
+    def add_task_from_entry(self, entry):
+        title = entry.get()
+        entry.delete(0, tk.END)
+        self.add_task(title)
 
+    def add_task(self, title):
         if title.strip():
             db.add_task(title)
-            self.task_entry.delete(0, tk.END)
             if self.current_view == "active":
                 self.load_tasks()
 
@@ -217,6 +219,20 @@ class TaskManagerApp:
         # Clear existing tasks
         for widget in self.task_frame.winfo_children():
             widget.destroy()
+
+        empty_task = tk.Entry(
+            self.task_frame,
+            font=("SF Pro Text", 14),
+            bg="white",
+            fg="black",
+            relief=tk.FLAT
+        )
+        empty_task.pack(fill=tk.X, padx=10, pady=5)
+
+        empty_task.bind(
+            "<Return>",
+            lambda e: self.add_task_from_entry(empty_task)
+        )
 
         # Get tasks based on current view
         if self.current_view == "active":
