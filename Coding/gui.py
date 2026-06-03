@@ -174,14 +174,35 @@ class TaskManagerApp:
             widget.destroy()
 
         # TEXT ENTRY (NEW TASK)
-        empty_task = tk.Entry(
+        new_task_container = tk.Frame(
             self.task_frame,
-            font=("SF Pro Text", 14),
+            bg="white"
+        )
+        new_task_container.pack(fill=tk.X, pady=5)
+
+        circle = tk.Label(
+            new_task_container,
+            text="○",
+            font=("SF PRo Text", 18),
+            bg="white",
+            fg="#8E8E93"
+        )
+
+        circle.pack(side=tk.RIGHT, padx=10)
+
+        empty_task = tk.Entry(
+            new_task_container,
+            font=("SF PRo Text", 14),
             bg="white",
             fg="black",
             relief=tk.FLAT
         )
-        empty_task.pack(fill=tk.X, padx=10, pady=5)
+
+        empty_task.pack(
+            side=tk.LEFT,
+            fill=tk.X,
+            expand=True
+        )
 
         empty_task.bind(
             "<Return>",
