@@ -195,7 +195,9 @@ class TaskManagerApp:
             font=("SF PRo Text", 14),
             bg="white",
             fg="black",
-            relief=tk.FLAT
+            borderwidth=0,          # Removes the standard 3D box border
+            highlightthickness=0,   # Removes the macOS blue focus ring/box border
+            relief=tk.FLAT          # flattens the input widget completely
         )
 
         empty_task.pack(
@@ -204,10 +206,40 @@ class TaskManagerApp:
             expand=True
         )
 
+        new_task_separator = tk.Frame(
+            self.task_frame,
+            bg="#D1D1D6",
+            height=1
+        )
+
+        new_task_separator.pack(
+            fill=tk.X,
+            pady=5
+        )
+
         empty_task.bind(
             "<Return>",
             lambda e: self.add_task_from_entry(empty_task)
         )
+
+        def set_placeholder(entry):
+            entry.insert(0, "New Reminder")
+            entry.config(fg="#8E8E93")
+
+        set_placeholder(empty_task)
+
+        def clear_placeholder(event):
+            if event.widget.get() == "New Reminder":
+                event.widget.delete(0, tk.END)
+                event.widget.config(fg="black")
+
+        def on_focus_out(event):
+            if event.widget.get().strip() =="":
+                event.widget.insert(0, "New Reminder")
+                event.widget.config(fg="#8E8E93")
+
+        empty_task.bind("<FocusIn>", clear_placeholder)
+        empty_task.bind("<FocusOut>", on_focus_out)
 
         # Get tasks based on current view
         if self.current_view == "active":
