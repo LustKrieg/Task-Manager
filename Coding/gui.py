@@ -169,6 +169,7 @@ class TaskManagerApp:
         widget.bind("<Button-2>", handler)  # mac support
 
     def load_tasks(self):
+        self.current_edit = None
         # Clear existing tasks
         for widget in self.task_frame.winfo_children():
             widget.destroy()
@@ -253,14 +254,10 @@ class TaskManagerApp:
             title = task[1]
             completed = task[2]
             created_at = task[3]
-            
-            # Format date/time (from "2025.10.21 14:30" to "Oct 21, 2:30 PM")
-            try:
-                # Use the format string that matches how you saved it in database.py
+            try:                                                              # Format date/time (from "2025.10.21 14:30" to "Oct 21, 2:30 PM")
                 dt = datetime.fromisoformat(created_at)
                 date_str = dt.strftime('%b %d, %I:%M %p')
-            except ValueError:
-                # Handle cases where the date format in the DB might be wrong
+            except ValueError:                                                # Handle cases where the date format in the DB might be wrong
                 date_str = f"Date Error: {created_at}"
             except Exception as e:
                 date_str = f"An unexpected error occurred: {e}"
@@ -273,9 +270,7 @@ class TaskManagerApp:
             text_container = tk.Frame(task_container, bg="white")
             text_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-            # Task text (with strikethrough if completed)
-            # Strikethrough display needs specific configuration/tags in standard Tkinter Label which is complex.
-            # We will use color change for simplicity:
+            # Task text
             text_color = "black" if not completed else "#8E8E93"
             
             task_label = tk.Label(
@@ -293,8 +288,8 @@ class TaskManagerApp:
                 lambda e,
                 tid=task_id,
                 title=title,
-                parent=text_container:
-                self.edit_task(tid, title, parent)
+                label=task_label:
+                self.edit_task(tid, title, label)
             )
 
             # Date/time label
@@ -409,8 +404,35 @@ class TaskManagerApp:
         db.delete_task(task_id)
         self.load_tasks()
 
-    def edit_task(self, task_id, current_title, parent):
-        print("Editing:", task_id, current_title)
+    def edit_task(self, task_id, current_title, label_widget):
+        self.cancel_edit()
+        parent = label_widget.master
+        label_widget.pack_forget()
+
+        edit_entry = tk.Entry(
+            parent,
+            font=("SF Pro Text", 14),
+            bg="white",
+            fg="black",
+            borderwidth=0,
+            highlightthickness=0,
+            relief=tk.FLAT
+        )
+
+        edit_entry.insert(0, current_title)
+
+        edit_entry.focus_set()
+        edit_entry.select_range(0, tk.END)
+        edit_entry.pack(anchor="w", fill=tk.X, expand=True)
+
+        self.current_edit = (edit_entry, label_widget)
+    
+    def cancel_edit(self):
+        if self.current_edit:
+            entry, label = self.current_edit
+            entry.destroy()
+            label.pack(anchor="w")
+            self.current_edit = None
 
 # Run app directly
 if __name__ == "__main__":
