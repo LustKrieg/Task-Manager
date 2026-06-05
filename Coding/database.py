@@ -119,3 +119,17 @@ def mark_active(task_id):
     conn.close()
 
 create_table()
+
+# Function 8 -- editing an existing task
+def update_task(task_id, new_title):
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    UPDATE tasks
+    SET title = ?
+    WHERE id = ?
+''', (new_title, task_id))
+    
+    conn.commit()
+    conn.close()

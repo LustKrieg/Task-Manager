@@ -288,6 +288,15 @@ class TaskManagerApp:
             )
             task_label.pack(anchor="w")
 
+            task_label.bind(
+                "<Button-1>",
+                lambda e,
+                tid=task_id,
+                title=title,
+                parent=text_container:
+                self.edit_task(tid, title, parent)
+            )
+
             # Date/time label
             date_label = tk.Label(
                 text_container,
@@ -400,6 +409,8 @@ class TaskManagerApp:
         db.delete_task(task_id)
         self.load_tasks()
 
+    def edit_task(self, task_id, current_title, parent):
+        print("Editing:", task_id, current_title)
 
 # Run app directly
 if __name__ == "__main__":
