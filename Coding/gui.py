@@ -283,14 +283,15 @@ class TaskManagerApp:
             )
             task_label.pack(anchor="w")
 
-            task_label.bind(
-                "<Button-1>",
-                lambda e,
-                tid=task_id,
-                title=title,
-                label=task_label:
-                self.edit_task(tid, title, label)
-            )
+            if not completed:                  # adjusted indentation for proper nesting within the code blocks
+                task_label.bind(               # if not 4 indented spaces, all tasks would be as one in both sections
+                    "<Button-1>",              # as of now, that change with "if not completed:" prohinits editing in completed tab
+                    lambda e,
+                    tid=task_id,
+                    title=title,
+                    label=task_label:
+                    self.edit_task(tid, title, label)
+                )
 
             # Date/time label
             date_label = tk.Label(
@@ -424,6 +425,18 @@ class TaskManagerApp:
         edit_entry.focus_set()
         edit_entry.select_range(0, tk.END)
         edit_entry.pack(anchor="w", fill=tk.X, expand=True)
+
+        def save_edit(event):
+            new_title = edit_entry.get().strip()
+            if new_title and new_title != current_title:
+                db.update_task(task_id, new_title)
+                label_widget.config(text=new_title)
+
+            edit_entry.destroy()
+            label_widget.pack(anchor="w")
+            self.current_edit = None
+
+        edit_entry.bind("<Return>", save_edit)
 
         self.current_edit = (edit_entry, label_widget)
     
