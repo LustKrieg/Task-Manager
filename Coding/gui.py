@@ -270,11 +270,17 @@ class TaskManagerApp:
             text_container = tk.Frame(task_container, bg="white")
             text_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
+            title_container = tk.Frame(
+                text_container,
+                bg="white"
+            )
+            title_container.pack(fill=tk.X)
+
             # Task text
             text_color = "black" if not completed else "#8E8E93"
             
             task_label = tk.Label(
-                text_container,
+                title_container,
                 text=title,
                 font=("SF Pro Text", 14),
                 fg=text_color,
@@ -425,6 +431,7 @@ class TaskManagerApp:
         edit_entry.focus_set()
         edit_entry.select_range(0, tk.END)
         edit_entry.pack(anchor="w", fill=tk.X, expand=True)
+        edit_entry.bind("<FocusOut>", save_edit)
 
         def save_edit(event):
             new_title = edit_entry.get().strip()
