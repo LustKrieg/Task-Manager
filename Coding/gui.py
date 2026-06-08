@@ -439,7 +439,6 @@ class TaskManagerApp:
 
         edit_entry.pack(anchor="w", fill=tk.X, expand=True)
         edit_entry.focus_get()
-        self.root.after(1, lambda: edit_entry.focus_force())
 
         edit_entry.insert(0, current_title)
         edit_entry.icursor(tk.END)
