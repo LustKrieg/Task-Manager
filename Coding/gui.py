@@ -124,6 +124,7 @@ class TaskManagerApp:
         self.task_menu.add_command(label="Delete",command=self.popup_delete_task)
 
         self.selected_task_id = None
+        self.focus_job = None
 
         # Load active tasks by default
         self.load_tasks()
@@ -437,8 +438,16 @@ class TaskManagerApp:
             insertbackground="#007AFF"
         )
 
+        def safe_focus():
+            if edit_entry.winfo_exists():
+                edit_entry.focus_force()
+
         edit_entry.pack(anchor="w", fill=tk.X, expand=True)
         edit_entry.focus_get()
+
+        if self.focus_job:
+            self.root.after_cancel(self.focus_job)
+        self.focus_job = self.root.after(1, safe_focus)
 
         edit_entry.insert(0, current_title)
         edit_entry.icursor(tk.END)
@@ -459,6 +468,10 @@ class TaskManagerApp:
         self.root.bind("<Button-1>", self.global_click_handler)
 
     def finish_edit(self, save=False):
+        if self.focus_job:
+            self.root.after_cancel(self.focus_job)
+            self.focus_job = None
+
         if not self.current_edit:
             return
         
