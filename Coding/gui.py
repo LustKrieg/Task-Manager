@@ -294,9 +294,8 @@ class TaskManagerApp:
                     "<Button-1>",              # as of now, that change with "if not completed:" prohinits editing in completed tab
                     lambda e,
                     tid=task_id,
-                    title=title,
                     label=task_label:
-                    self.edit_task(tid, title, label)
+                    self.edit_task(tid, label.cget("text"), label)
                 )
 
             # Date/time label
@@ -411,8 +410,19 @@ class TaskManagerApp:
         db.delete_task(task_id)
         self.load_tasks()
 
+    def global_click_handler(self, event):
+        if not self.current_edit:
+            return
+        
+        entry, label, task_id, old_title = self.current_edit
+
+        if event.widget != entry:
+            self.finish_edit(save=True)
+
+    # ---------------- EDIT TASK ----------------
     def edit_task(self, task_id, current_title, label_widget):
-        self.cancel_edit()
+        self.finish_edit()
+
         parent = label_widget.master
         label_widget.pack_forget()
 
@@ -423,36 +433,53 @@ class TaskManagerApp:
             fg="black",
             borderwidth=0,
             highlightthickness=0,
-            relief=tk.FLAT
+            relief=tk.FLAT,
+            insertbackground="#007AFF"
         )
 
-        edit_entry.insert(0, current_title)
-
-        edit_entry.focus_set()
-        edit_entry.select_range(0, tk.END)
         edit_entry.pack(anchor="w", fill=tk.X, expand=True)
-        edit_entry.bind("<FocusOut>", save_edit)
+        edit_entry.focus_get()
+        self.root.after(1, lambda: edit_entry.focus_force())
 
-        def save_edit(event):
-            new_title = edit_entry.get().strip()
-            if new_title and new_title != current_title:
-                db.update_task(task_id, new_title)
-                label_widget.config(text=new_title)
+        edit_entry.insert(0, current_title)
+        edit_entry.icursor(tk.END)
+        self.current_edit = (edit_entry, label_widget, task_id, current_title)
 
-            edit_entry.destroy()
-            label_widget.pack(anchor="w")
-            self.current_edit = None
+        # ---------------- SAVE ------------------
+        def save_edit(event=None):
+            self.finish_edit(save=True)
 
+        # ---------------- CANCEL ----------------
+        def cancel_edit(event=None):
+            self.finish_edit()
+        
         edit_entry.bind("<Return>", save_edit)
+        edit_entry.bind("<Escape>", cancel_edit)
 
-        self.current_edit = (edit_entry, label_widget)
-    
-    def cancel_edit(self):
-        if self.current_edit:
-            entry, label = self.current_edit
+        edit_entry.pack(anchor="w", fill=tk.X, expand=True)
+        self.root.bind("<Button-1>", self.global_click_handler)
+
+    def finish_edit(self, save=False):
+        if not self.current_edit:
+            return
+        
+        entry, label, task_id, old_title = self.current_edit
+
+        if entry.winfo_exists():
+
+            if save:
+                new_title = entry.get().strip()
+
+                if new_title and new_title != old_title:
+                    db.update_task(task_id, new_title)
+                    label.config(text=new_title)
+
             entry.destroy()
-            label.pack(anchor="w")
-            self.current_edit = None
+
+        label.pack(anchor="w")
+        self.current_edit = None
+        self.root.unbind("<Button-1>")
+
 
 # Run app directly
 if __name__ == "__main__":
