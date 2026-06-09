@@ -4,6 +4,9 @@ import tkinter as tk
 from tkmacosx import Button
 from datetime import datetime
 
+TASK_ROW_HEIGHT = 54
+HIGHLIGHT_BG = "#F2F2F7"
+
 class TaskManagerApp:
     def __init__(self):
         self.root = tk.Tk()
@@ -11,7 +14,7 @@ class TaskManagerApp:
         self.root.geometry("785x500")
         self.root.configure(bg="white")
 
-        #Main Container
+        #──────── Main Container ──────────────────────────────────────────────────
         main_container = tk.Frame(self.root, bg="white")
         main_container.pack(fill=tk.BOTH, expand=True)
 
@@ -24,10 +27,7 @@ class TaskManagerApp:
         sidebar_frame.pack(side=tk.LEFT, fill=tk.Y)
         sidebar_frame.pack_propagate(False)
 
-        #Content area
-        content_frame = tk.Frame(
-            main_container, bg="white"
-        )
+        content_frame = tk.Frame(main_container, bg="white")
         content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         self.section_title = tk.Label(
@@ -39,11 +39,10 @@ class TaskManagerApp:
         )
         self.section_title.pack(anchor="w", padx=20, pady=(20, 10))
 
-        # Input frame at top
         input_frame = tk.Frame(content_frame, bg="white")
         input_frame.pack(pady=20, padx=20, fill=tk.X)
 
-        # Tab buttons frame
+        #────── Sidebar buttons ─────────────────────────────────────────────────
         tab_frame = tk.Frame(self.root, bg="white")
         tab_frame.pack(pady=(0, 10), padx=20, fill=tk.X)
 
@@ -79,7 +78,7 @@ class TaskManagerApp:
         )
         self.completed_tab_btn.pack(anchor="w", pady=5, padx=10)
 
-        # Scrollable frame for tasks
+        #───── Scrollable task area ─────────────────────────────────────────────
         canvas = tk.Canvas(content_frame, bg="white", highlightthickness=0)
         scrollbar = tk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
         self.task_frame = tk.Frame(canvas, bg="white")
@@ -95,54 +94,44 @@ class TaskManagerApp:
             canvas.itemconfig(canvas_window, width=event.width)
 
         canvas.bind("<Configure>", resize_frame)
-
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        self.root.bind_all(
-            "<MouseWheel>",
-            lambda e:canvas.yview_scroll(-1 if e.delta > 0 else 1, "units")
-        )
+        self.root.bind_all("<MouseWheel>",
+            lambda e:canvas.yview_scroll(-1 if e.delta > 0 else 1, "units"))
 
-        self.root.bind_all(
-            "<Button-4>",
-            lambda e: canvas.yview_scroll(-1, "units")
-        )
+        self.root.bind_all("<Button-4>",
+            lambda e: canvas.yview_scroll(-1, "units"))
 
-        self.root.bind_all(
-            "<Button-5>",
-            lambda e: canvas.yview_scroll(1, "units")
-        )
+        self.root.bind_all("<Button-5>",
+            lambda e: canvas.yview_scroll(1, "units"))
 
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=20)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Track current view
-        self.current_view = "active"
+        #────────────── State ────────────────────────────────────────────────────
+        self.current_view      = "active"
+        self.selected_task_id  = None   # (entry, label, task_id, old title)
+        self.focus_job         = None
+        self.highlighted_frame = None   # row currently highlighted by dbl-click
+        self.selected_task_id  = None
 
-        # Right click popup menu
+        #────────────── Right-click context menu ──────────────────────────────────
         self.task_menu = tk.Menu(self.root, tearoff=0)
         self.task_menu.add_command(label="Delete",command=self.popup_delete_task)
 
-        self.selected_task_id = None
-        self.focus_job = None
 
         # Load active tasks by default
         self.load_tasks()
 
+    # ════════════════════════════════════════════════════════════════════════
+    #   PUBLIC
+    # ════════════════════════════════════════════════════════════════════════
     def run(self):
         self.root.mainloop()
 
-    def add_task_from_entry(self, entry):
-        title = entry.get()
-        entry.delete(0, tk.END)
-        self.add_task(title)
-
-    def add_task(self, title):
-        if title.strip():
-            db.add_task(title)
-            if self.current_view == "active":
-                self.load_tasks()
-
+    # ════════════════════════════════════════════════════════════════════════
+    #   NAVIGATION
+    # ════════════════════════════════════════════════════════════════════════
     def show_active_tasks(self):
         self.current_view = "active"
         # Update button styles
@@ -159,7 +148,48 @@ class TaskManagerApp:
         self.completed_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.load_tasks()
 
-    # RIGHT CLICK SYSTEM
+    # ════════════════════════════════════════════════════════════════════════
+    #   TASK CRUD HELPERS
+    # ════════════════════════════════════════════════════════════════════════
+    def add_task_from_entry(self, entry):
+        title = entry.get()
+        entry.delete(0, tk.END)
+        self.add_task(title)
+
+    def add_task(self, title):
+        if title.strip():
+            db.add_task(title)
+            if self.current_view == "active":
+                self.load_tasks()
+
+    def complete_task(self, task_id):
+        db.mark_complete(task_id)
+        self.load_tasks()
+
+    def undo_task(self, task_id):
+        db.mark_active(task_id)
+        self.load_tasks()
+
+    def delete_task(self, task_id):
+        db.delete_task(task_id)
+        self.load_tasks()
+
+    def popup_delete_task(self):
+        db.delete_task(self.selected_task_id)
+        self.load_tasks()
+
+    def show_task_menu(self, event, task_id):
+        self.selected_task_id = task_id
+        self.task_menu.tk_popup(event.x_root, event.y_root)
+        self.task_menu.grab_release()
+
+    def animate_complete(self, button, task_id):
+        button.configure(text="◉", fg="#E30000")
+        self.root.after(500,lambda: self.complete_task(task_id))
+
+    # ════════════════════════════════════════════════════════════════════════
+    #   RIGHT-CLICK  FIX – 4
+    # ════════════════════════════════════════════════════════════════════════
     def bind_right_click(self, widget, tid):
         def handler(event):
             self.selected_task_id = tid
@@ -167,19 +197,24 @@ class TaskManagerApp:
             self.task_menu.grab_release()
 
         widget.bind("<Button-3>", handler)
-        widget.bind("<Button-2>", handler)  # mac support
+        widget.bind("<Button-2>", handler)      # macOS two-finger / right-click
 
+    def _bind_rc_deep(self, widget, tid):   # recursively bind right-click on widget and all its descendants
+        self.bind_right_click(widget, tid)
+        for child in widget.winfo_children():
+            self._bind_rc_deep(child, tid)
+
+    # ════════════════════════════════════════════════════════════════════════
+    #   LOAD / RENDER TASKS
+    # ════════════════════════════════════════════════════════════════════════
     def load_tasks(self):
         self.current_edit = None
         # Clear existing tasks
         for widget in self.task_frame.winfo_children():
             widget.destroy()
 
-        # TEXT ENTRY (NEW TASK)
-        new_task_container = tk.Frame(
-            self.task_frame,
-            bg="white"
-        )
+        # ── "New Reminder" entry row ────────────────────────────────────────
+        new_task_container = tk.Frame(self.task_frame,bg="white")
         new_task_container.pack(fill=tk.X, pady=5)
 
         circle = tk.Label(
@@ -202,27 +237,11 @@ class TaskManagerApp:
             relief=tk.FLAT          # flattens the input widget completely
         )
 
-        empty_task.pack(
-            side=tk.LEFT,
-            fill=tk.X,
-            expand=True
-        )
+        empty_task.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        new_task_separator = tk.Frame(
-            self.task_frame,
-            bg="#D1D1D6",
-            height=1
-        )
+        tk.Frame(self.task_frame, bg="#D1D1D6", height=1).pack(fill=tk.X, pady=5)
 
-        new_task_separator.pack(
-            fill=tk.X,
-            pady=5
-        )
-
-        empty_task.bind(
-            "<Return>",
-            lambda e: self.add_task_from_entry(empty_task)
-        )
+        empty_task.bind("<Return>",lambda e: self.add_task_from_entry(empty_task))
 
         def set_placeholder(entry):
             entry.insert(0, "New Reminder")
@@ -243,41 +262,37 @@ class TaskManagerApp:
         empty_task.bind("<FocusIn>", clear_placeholder)
         empty_task.bind("<FocusOut>", on_focus_out)
 
-        # Get tasks based on current view
-        if self.current_view == "active":
-            tasks = db.get_active_tasks()
-        else:
-            tasks = db.get_completed_tasks()
+        # ── Fetch tasks ─────────────────────────────────────────────────────
+        tasks = db.get_active_tasks() if self.current_view == "active" else db.get_completed_tasks()
 
         # Display each task
         for task in tasks:
-            task_id = task[0]
-            title = task[1]
-            completed = task[2]
-            created_at = task[3]
+            task_id, title, completed, created_at  = task[0], task[1], task[2], task[3]
+
             try:                                                              # Format date/time (from "2025.10.21 14:30" to "Oct 21, 2:30 PM")
                 dt = datetime.fromisoformat(created_at)
                 date_str = dt.strftime('%b %d, %I:%M %p')
             except ValueError:                                                # Handle cases where the date format in the DB might be wrong
                 date_str = f"Date Error: {created_at}"
             except Exception as e:
-                date_str = f"An unexpected error occurred: {e}"
+                date_str = f"Error: {e}"
 
-            # Task container
-            task_container = tk.Frame(self.task_frame, bg="white")
+            # ── Row container  ───────────────────────────────────────────────
+            task_container = tk.Frame(
+                self.task_frame,
+                bg="white",
+                height=TASK_ROW_HEIGHT             # fixed height, the row never jumps when we smap Label -> Entry
+            )
             task_container.pack(fill=tk.X, pady=5)
-
-            # Left side: task text and date
+            task_container.pack_propagate(False)
+            
             text_container = tk.Frame(task_container, bg="white")
             text_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-            title_container = tk.Frame(
-                text_container,
-                bg="white"
-            )
+            title_container = tk.Frame(text_container, bg="white")
             title_container.pack(fill=tk.X)
 
-            # Task text
+            # Task label
             text_color = "black" if not completed else "#8E8E93"
             
             task_label = tk.Label(
@@ -288,7 +303,8 @@ class TaskManagerApp:
                 bg="white",
                 anchor="w"
             )
-            task_label.pack(anchor="w")
+            task_label.grid(row=0, column=0, sticky="ew")
+            title_container.columnconfigure(0, weight=1)
 
             if not completed:                  # adjusted indentation for proper nesting within the code blocks
                 task_label.bind(               # if not 4 indented spaces, all tasks would be as one in both sections
@@ -312,7 +328,8 @@ class TaskManagerApp:
 
             # Buttons on right side
             # Complete button (only for active tasks)
-            # Completion circle
+
+            # ── Completion circle ────────────────────────────────────────────
             circle_btn = tk.Label(
                 task_container,
                 text="○" if not completed else "◉",
@@ -322,110 +339,172 @@ class TaskManagerApp:
             )
             circle_btn.pack(side=tk.RIGHT, padx=10)
 
-            # Mouse press
-            circle_btn.bind(
-                "<ButtonPress-1>",
-                lambda e, btn=circle_btn:
-                btn.configure(text="◉", fg="#8E8E93")
-            )
-
             # ACTIVE TASKS
             if not completed:
-                circle_btn.bind(
-                    "<Enter>",
-                    lambda e, btn=circle_btn:
-                    btn.configure(fg="#E30000")
-                )
-
-                circle_btn.bind(
-                    "<Leave>",
-                    lambda e, btn=circle_btn:
-                    btn.configure(fg="#8E8E93")
-                )
-
-                circle_btn.bind(
-                    "<ButtonRelease-1>",
-                    lambda e, tid=task_id, btn=circle_btn:
-                    self.animate_complete(btn, tid)
-                )
+                circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#E30000"))
+                circle_btn.bind("<Leave>", lambda e, btn=circle_btn: btn.configure(fg="#8E8E93"))
+                circle_btn.bind("<ButtonPress-1>", lambda e, b=circle_btn: b.configure(text="◉", fg="#8E8E93"))
+                circle_btn.bind("<ButtonRelease-1>", lambda e, tid=task_id, btn=circle_btn: self.animate_complete(btn, tid))
 
             # COMPLETED TASKS
             else:
-                circle_btn.bind(
-                    "<Enter>",
-                    lambda e, btn=circle_btn:
-                    btn.configure(fg="#8E8E93")
+                circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#8E8E93"))
+                circle_btn.bind("<Leave>", lambda e, btn=circle_btn:btn.configure(fg="#E30000"))
+                circle_btn.bind("<ButtonPress-1>", lambda e, btn=circle_btn: btn.configure(text="◉", fg="#8E8E93"))
+                circle_btn.bind("<ButtonRelease-1>", lambda e, tid=task_id, btn=circle_btn: self.undo_task(tid))
+
+            # ── Single-click → inline edit  (active tasks only) ──────────────
+            if not completed:
+                for w in (task_label, title_container):
+                    w.bind(
+                        "<Button-1>",
+                        lambda e, tid=task_id, lbl=task_label: 
+                        self.edit_task(tid, lbl.cget("text"), lbl),
+                    )
+
+            # ── Double-click -> highlight row + detail popup ──────────
+            for w in (task_container, text_container, title_container, task_label, date_label):
+                w.bind("<Double-Button-1>",
+                       lambda e, tid=task_id, tc=task_container, t=title: self.open_detail_popup(tid, tc, t),
                 )
 
-                circle_btn.bind(
-                    "<Leave>",
-                    lambda e, btn=circle_btn:
-                    btn.configure(fg="#E30000")
-                )
+            self._bind_rc_deep(task_container, task_id)
 
-                circle_btn.bind(
-                    "<ButtonPress-1>",
-                    lambda e, btn=circle_btn:
-                        btn.configure(text="◉", fg="#8E8E93")
-                )
+            tk.Frame(self.task_frame, bg="#D1D1D6", height=1).pack(fill=tk.X, pady=5)
 
-                circle_btn.bind(
-                    "<ButtonRelease-1>",
-                    lambda e, tid=task_id, btn=circle_btn:
-                    self.undo_task(tid)
-                )
+    # ════════════════════════════════════════════════════════════════════════
+    #   DETAIL POPUP  (FIX 3)
+    # ════════════════════════════════════════════════════════════════════════
+    def open_detail_popup(self, task_id, row_frame, task_title):
+        self.finish_edit(save=True)
 
-            # right click ON ALL elements
-            for w in (task_container, text_container, task_label, date_label, circle_btn):
-                self.bind_right_click(w, task_id)
+        if self.highlighted_frame and self.highlighted_frame.winfo_exists():
+            self._set_row_bg(self.highlighted_frame, "white")
 
-            separator = tk.Frame(
-                self.task_frame,
-                bg="#D1D1D6",
-                height=1
-            )
-            separator.pack(fill=tk.X, expand=True, pady=5)
+        self.highlighted_frame = row_frame
+        self._set_row_bg(row_frame, HIGHLIGHT_BG)
 
-    def complete_task(self, task_id):
-        db.mark_complete(task_id)
-        self.load_tasks()
+        # Build popup window
+        popup = tk.Toplevel(self.root)
+        popup.title("")
+        popup.resizable(False, False)
+        popup.configure(bg="white")
 
-    def undo_task(self, task_id):
-        db.mark_active(task_id)
-        self.load_tasks()
+        # Position near the clicked row
+        self.root.update_idletasks()
+        rx = self.root.winfo_rootx() + self.root.winfo_width() // 2 - 150
+        ry = self.root.winfo_rooty() + self.root.winfo_height() // 2 - 100
+        popup.geometry(f"300x200+{rx}+{ry}")
 
-    def show_task_menu(self, event, task_id):
-        self.selected_task_id = task_id
-        self.task_menu.tk_popup(event.x_root, event.y_root)
-        self.task_menu.grab_release()
-
-    def popup_delete_task(self):
-        db.delete_task(self.selected_task_id)
-        self.load_tasks()
-
-    def animate_complete(self, button, task_id):
-        button.configure(text="◉", fg="#E30000")
-        self.root.after(500,lambda: self.complete_task(task_id))
-
-    def delete_task(self, task_id):
-        db.delete_task(task_id)
-        self.load_tasks()
-
-    def global_click_handler(self, event):
-        if not self.current_edit:
-            return
+        #Dismiss helper
+        def dismiss():
+            if self.highlighted_frame and self. highlighted_frame.winfo_exists():
+                self._set_row_bg(self.highlighted_frame, "white")
+            self.highlighted_frame = None
+            popup.destroy()
         
-        entry, label, task_id, old_title = self.current_edit
+        popup.protocol("WM_DELETE_WINDOW", dismiss)
+        # ── Title ────────────────────────────────────────────────────────────
+        tk.Label(
+            popup,
+            text=task_title,
+            font=("SF Pro Display", 15, "bold"),
+            bg="white",
+            fg="black",
+            wraplength=260,
+            justify="left",
+        ).pack(anchor="w", padx=20, pady=(18, 4))
 
-        if event.widget != entry:
-            self.finish_edit(save=True)
+        tk.Frame(popup, bg="#D1D1D6", height=1).pack(fill=tk.X, padx=20)
 
-    # ---------------- EDIT TASK ----------------
+        # ── Rename field ─────────────────────────────────────────────────────
+        rename_entry = tk.Entry(
+            popup,
+            font=("SF Pro Text", 13),
+            bg="#F2F2F7",
+            fg="black",
+            borderwidth=0,
+            highlightthickness=0,
+            relief=tk.FLAT,
+            insertbackground="#007AFF",
+        )
+        rename_entry.insert(0, task_title)
+        rename_entry.pack(fill=tk.X, padx=20, pady=10, ipady=6)
+
+        # ── Action buttons ────────────────────────────────────────────────────
+        btn_row = tk.Frame(popup, bg="white")
+        btn_row.pack(fill=tk.X, padx=20, pady=(0, 14))
+
+        def save_rename():
+            new = rename_entry.get().strip()
+            if new and new != task_title:
+                db.update_task(task_id, new)
+                self.load_tasks()
+            dismiss()
+
+        def delete_and_close():
+            db.delete_task(task_id)
+            dismiss()
+            self.load_tasks()
+
+        Button(
+            btn_row,
+            text="Save",
+            font=("SF Pro Text", 13),
+            bg="#007AFF",
+            fg="white",
+            borderless=1,
+            activebackground="#0060d0",
+            focuscolor="",
+            width=100,
+            height=34,
+            command=save_rename,
+        ).pack(side=tk.LEFT)
+
+        Button(
+            btn_row,
+            text="Delete",
+            font=("SF Pro Text", 13),
+            bg="#FF3B30",
+            fg="white",
+            borderless=1,
+            activebackground="#cc2f26",
+            focuscolor="",
+            width=100,
+            height=34,
+            command=delete_and_close,
+        ).pack(side=tk.RIGHT)
+
+        rename_entry.bind("<Return>", lambda e: save_rename())
+        rename_entry.bind("<Escape>", lambda e: dismiss())
+        rename_entry.focus_force()
+        rename_entry.select_range(0, tk.END)
+
+    # ════════════════════════════════════════════════════════════════════════
+    #   ROW BACKGROUND HELPER
+    # ════════════════════════════════════════════════════════════════════════
+    def _set_row_bg(self, frame, color):
+        try:
+            frame.configure(bg=color)
+        except tk.TclError:
+            pass
+        for child in frame.winfo_children():
+            try:
+                child.configure(bg=color)
+            except tk.TclError:
+                pass
+
+    # ════════════════════════════════════════════════════════════════════════
+    #   INLINE EDIT
+    # ════════════════════════════════════════════════════════════════════════
     def edit_task(self, task_id, current_title, label_widget):
-        self.finish_edit()
+        if self.current_edit and self.current_edit[2] == task_id:
+            return
 
+        self.finish_edit(save=True)
+        
         parent = label_widget.master
-        label_widget.pack_forget()
+        label_widget.grid_remove()
 
         edit_entry = tk.Entry(
             parent,
@@ -437,63 +516,47 @@ class TaskManagerApp:
             relief=tk.FLAT,
             insertbackground="#007AFF"
         )
+        self.root.update_idletasks()
 
-        def safe_focus():
-            if edit_entry.winfo_exists():
-                edit_entry.focus_force()
+        edit_entry.grid(row=0, column=0, sticky="ew")
 
-        edit_entry.pack(anchor="w", fill=tk.X, expand=True)
-        edit_entry.focus_get()
-
-        if self.focus_job:
-            self.root.after_cancel(self.focus_job)
-        self.focus_job = self.root.after(1, safe_focus)
-
+        edit_entry.focus_force()
+        edit_entry.icursor(tk.END)
+        edit_entry.bind(
+            "<FocusOut>",
+            lambda e: self.finish_edit(save=True)
+        )
         edit_entry.insert(0, current_title)
         edit_entry.icursor(tk.END)
+
         self.current_edit = (edit_entry, label_widget, task_id, current_title)
 
-        # ---------------- SAVE ------------------
-        def save_edit(event=None):
-            self.finish_edit(save=True)
+        edit_entry.bind("<Return>", lambda e: self.finish_edit(save=True))
+        edit_entry.bind("<Escape>", lambda e: self.finish_edit(save=False))
 
-        # ---------------- CANCEL ----------------
-        def cancel_edit(event=None):
-            self.finish_edit()
-        
-        edit_entry.bind("<Return>", save_edit)
-        edit_entry.bind("<Escape>", cancel_edit)
-
-        edit_entry.pack(anchor="w", fill=tk.X, expand=True)
-        self.root.bind("<Button-1>", self.global_click_handler)
-
-    def finish_edit(self, save=False):
+    def finish_edit(self, save=False, _skip_unbind=False):
         if self.focus_job:
             self.root.after_cancel(self.focus_job)
             self.focus_job = None
 
         if not self.current_edit:
             return
-        
+
         entry, label, task_id, old_title = self.current_edit
+        self.current_edit = None
 
         if entry.winfo_exists():
-
             if save:
                 new_title = entry.get().strip()
-
                 if new_title and new_title != old_title:
                     db.update_task(task_id, new_title)
                     label.config(text=new_title)
-
             entry.destroy()
 
-        label.pack(anchor="w")
-        self.current_edit = None
-        self.root.unbind("<Button-1>")
+        if label.winfo_exists():
+            label.grid(row=0, column=0, sticky="ew")
 
-
-# Run app directly
+#────────────── Run ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     app = TaskManagerApp()
     app.run()
