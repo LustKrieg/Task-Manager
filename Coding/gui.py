@@ -113,12 +113,10 @@ class TaskManagerApp:
         self.selected_task_id  = None   # (entry, label, task_id, old title)
         self.focus_job         = None
         self.highlighted_frame = None   # row currently highlighted by dbl-click
-        self.selected_task_id  = None
 
         # ────────────── Right-click context menu ──────────────────────────────────
         self.task_menu = tk.Menu(self.root, tearoff=0)
         self.task_menu.add_command(label="Delete",command=self.popup_delete_task)
-
 
         # Load active tasks by default
         self.load_tasks()
@@ -177,11 +175,6 @@ class TaskManagerApp:
     def popup_delete_task(self):
         db.delete_task(self.selected_task_id)
         self.load_tasks()
-
-    def show_task_menu(self, event, task_id):
-        self.selected_task_id = task_id
-        self.task_menu.tk_popup(event.x_root, event.y_root)
-        self.task_menu.grab_release()
 
     def animate_complete(self, button, task_id):
         button.configure(text="◉", fg="#E30000")
@@ -374,18 +367,8 @@ class TaskManagerApp:
     # for future development right-click pop-up window same as double trackpad click for delete button.
     # I don't want the window to be apart from the main window, just a nice popup as delete function.
     # ════════════════════════════════════════════════════════════════════════
-    #   ROW BACKGROUND HELPER
+    #   ROW BACKGROUND COLOR
     # ════════════════════════════════════════════════════════════════════════
-    def _set_row_bg(self, frame, color):
-        try:
-            frame.configure(bg=color)
-        except tk.TclError:
-            pass
-        for child in frame.winfo_children():
-            try:
-                child.configure(bg=color)
-            except tk.TclError:
-                pass
 
     # ════════════════════════════════════════════════════════════════════════
     #   INLINE EDIT
@@ -397,7 +380,7 @@ class TaskManagerApp:
         self.finish_edit(save=True)
         
         parent = label_widget.master
-        label_widget.grid_remove()
+        label_widget.grid_forget()
 
         edit_entry = tk.Entry(
             parent,
@@ -429,27 +412,34 @@ class TaskManagerApp:
 
         if not self.current_edit:
             return
-        print("FINISH EDIT")
 
         entry, label, task_id, old_title = self.current_edit
-        self.current_edit = None
 
         final_title = old_title
 
+        if save:
+            typed = entry.get().strip()
+
+            if typed:
+                final_title = typed
+
+                if typed != old_title:
+                    db.update_task(task_id, typed)
+
         if entry.winfo_exists():
-            if save:
-                typed = entry.get().strip()
-
-                if typed:
-                    final_title = typed
-
-                    if typed != old_title:
-                        db.update_task(task_id, typed)
-
+            entry.grid_forget()
+            entry.destroy()
 
         label.config(text=final_title)
+
         if label.winfo_exists():
+            label.grid_forget()
             label.grid(row=0, column=0, sticky="ew")
+
+            self.root.update_idletasks()
+            label.tkraise()
+
+        self.current_edit = None
 
 #────────────── Run ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
