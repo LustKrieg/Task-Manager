@@ -380,7 +380,6 @@ class TaskManagerApp:
         self.finish_edit(save=True)
         
         parent = label_widget.master
-        label_widget.grid_forget()
 
         edit_entry = tk.Entry(
             parent,
@@ -392,10 +391,12 @@ class TaskManagerApp:
             relief=tk.FLAT,
             insertbackground="#007AFF"
         )
+        edit_entry.focus_set()
         edit_entry.insert(0, current_title)
         edit_entry.icursor(tk.END)
 
         edit_entry.grid(row=0, column=0, sticky="ew")
+        parent.update_idletasks()
 
         edit_entry.bind("<FocusOut>", lambda e: self.finish_edit(save=True))
         edit_entry.bind("<Return>", lambda e: self.finish_edit(save=True))
@@ -403,15 +404,12 @@ class TaskManagerApp:
 
         self.current_edit = (edit_entry, label_widget, task_id, current_title)
 
-        edit_entry.focus_force()
-
     def finish_edit(self, save=False, _skip_unbind=False):
+        if not self.current_edit:
+            return
         if self.focus_job:
             self.root.after_cancel(self.focus_job)
             self.focus_job = None
-
-        if not self.current_edit:
-            return
 
         entry, label, task_id, old_title = self.current_edit
 
@@ -431,13 +429,6 @@ class TaskManagerApp:
             entry.destroy()
 
         label.config(text=final_title)
-
-        if label.winfo_exists():
-            label.grid_forget()
-            label.grid(row=0, column=0, sticky="ew")
-
-            self.root.update_idletasks()
-            label.tkraise()
 
         self.current_edit = None
 
