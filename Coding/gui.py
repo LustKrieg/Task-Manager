@@ -14,7 +14,7 @@ class TaskManagerApp:
         self.root.geometry("785x500")
         self.root.configure(bg="white")
 
-        #──────── Main Container ──────────────────────────────────────────────────
+        # ──────── Main Container ──────────────────────────────────────────────────
         main_container = tk.Frame(self.root, bg="white")
         main_container.pack(fill=tk.BOTH, expand=True)
 
@@ -42,7 +42,7 @@ class TaskManagerApp:
         input_frame = tk.Frame(content_frame, bg="white")
         input_frame.pack(pady=20, padx=20, fill=tk.X)
 
-        #────── Sidebar buttons ─────────────────────────────────────────────────
+        # ────── Sidebar buttons ─────────────────────────────────────────────────
         tab_frame = tk.Frame(self.root, bg="white")
         tab_frame.pack(pady=(0, 10), padx=20, fill=tk.X)
 
@@ -78,7 +78,7 @@ class TaskManagerApp:
         )
         self.completed_tab_btn.pack(anchor="w", pady=5, padx=10)
 
-        #───── Scrollable task area ─────────────────────────────────────────────
+        # ───── Scrollable task area ──────────────────────────────────────────────────────
         canvas = tk.Canvas(content_frame, bg="white", highlightthickness=0)
         scrollbar = tk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
         self.task_frame = tk.Frame(canvas, bg="white")
@@ -108,14 +108,14 @@ class TaskManagerApp:
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=20)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        #────────────── State ────────────────────────────────────────────────────
+        # ────────────── State ────────────────────────────────────────────────────
         self.current_view      = "active"
         self.selected_task_id  = None   # (entry, label, task_id, old title)
         self.focus_job         = None
         self.highlighted_frame = None   # row currently highlighted by dbl-click
         self.selected_task_id  = None
 
-        #────────────── Right-click context menu ──────────────────────────────────
+        # ────────────── Right-click context menu ──────────────────────────────────
         self.task_menu = tk.Menu(self.root, tearoff=0)
         self.task_menu.add_command(label="Delete",command=self.popup_delete_task)
 
@@ -216,7 +216,6 @@ class TaskManagerApp:
         # ── "New Reminder" entry row ────────────────────────────────────────
         new_task_container = tk.Frame(self.task_frame,bg="white")
         new_task_container.pack(fill=tk.X, pady=5)
-
         circle = tk.Label(
             new_task_container,
             text="○",
@@ -301,7 +300,9 @@ class TaskManagerApp:
                 font=("SF Pro Text", 14),
                 fg=text_color,
                 bg="white",
-                anchor="w"
+                anchor="w",
+                bd=0,
+                highlightthickness=0
             )
             task_label.grid(row=0, column=0, sticky="ew")
             title_container.columnconfigure(0, weight=1)
@@ -322,7 +323,9 @@ class TaskManagerApp:
                 font=("SF Pro Text", 10),
                 fg="#8E8E93",
                 bg="white",
-                anchor="w"
+                anchor="w",
+                highlightthickness=0
+
             )
             date_label.pack(anchor="w")
 
@@ -362,14 +365,7 @@ class TaskManagerApp:
                         self.edit_task(tid, lbl.cget("text"), lbl),
                     )
 
-            # ── Double-click -> highlight row + detail popup ──────────
-            for w in (task_container, text_container, title_container, task_label, date_label):
-                w.bind("<Double-Button-1>",
-                       lambda e, tid=task_id, tc=task_container, t=title: self.open_detail_popup(tid, tc, t),
-                )
-
-            self._bind_rc_deep(task_container, task_id)
-
+            # ────────────── Highlight row ───────────────────────────────────────────────────────
             tk.Frame(self.task_frame, bg="#D1D1D6", height=1).pack(fill=tk.X, pady=5)
 
     # ════════════════════════════════════════════════════════════════════════
@@ -413,23 +409,18 @@ class TaskManagerApp:
             relief=tk.FLAT,
             insertbackground="#007AFF"
         )
-        self.root.update_idletasks()
-
-        edit_entry.grid(row=0, column=0, sticky="ew")
-
-        edit_entry.focus_force()
-        edit_entry.icursor(tk.END)
-        edit_entry.bind(
-            "<FocusOut>",
-            lambda e: self.finish_edit(save=True)
-        )
         edit_entry.insert(0, current_title)
         edit_entry.icursor(tk.END)
 
-        self.current_edit = (edit_entry, label_widget, task_id, current_title)
+        edit_entry.grid(row=0, column=0, sticky="ew")
 
+        edit_entry.bind("<FocusOut>", lambda e: self.finish_edit(save=True))
         edit_entry.bind("<Return>", lambda e: self.finish_edit(save=True))
         edit_entry.bind("<Escape>", lambda e: self.finish_edit(save=False))
+
+        self.current_edit = (edit_entry, label_widget, task_id, current_title)
+
+        edit_entry.focus_force()
 
     def finish_edit(self, save=False, _skip_unbind=False):
         if self.focus_job:
@@ -438,18 +429,25 @@ class TaskManagerApp:
 
         if not self.current_edit:
             return
+        print("FINISH EDIT")
 
         entry, label, task_id, old_title = self.current_edit
         self.current_edit = None
 
+        final_title = old_title
+
         if entry.winfo_exists():
             if save:
-                new_title = entry.get().strip()
-                if new_title and new_title != old_title:
-                    db.update_task(task_id, new_title)
-                    label.config(text=new_title)
-            entry.destroy()
+                typed = entry.get().strip()
 
+                if typed:
+                    final_title = typed
+
+                    if typed != old_title:
+                        db.update_task(task_id, typed)
+
+
+        label.config(text=final_title)
         if label.winfo_exists():
             label.grid(row=0, column=0, sticky="ew")
 
