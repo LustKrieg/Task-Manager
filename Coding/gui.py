@@ -5,7 +5,6 @@ from tkmacosx import Button
 from datetime import datetime
 
 TASK_ROW_HEIGHT = 54
-HIGHLIGHT_BG = "#F2F2F7"
 
 class TaskManagerApp:
     def __init__(self):
@@ -113,6 +112,7 @@ class TaskManagerApp:
         self.selected_task_id  = None   # (entry, label, task_id, old title)
         self.focus_job         = None
         self.highlighted_frame = None   # row currently highlighted by dbl-click
+        self.pending_completion = set()
 
         # ────────────── Right-click context menu ──────────────────────────────────
         self.task_menu = tk.Menu(self.root, tearoff=0)
@@ -177,8 +177,20 @@ class TaskManagerApp:
         self.load_tasks()
 
     def animate_complete(self, button, task_id):
-        button.configure(text="◉", fg="#E30000")
-        self.root.after(500,lambda: self.complete_task(task_id))
+        self.pending_completion.add(task_id)
+
+        button.configure(
+            text="◉",
+        fg="#E30000"
+    )
+        self.root.after(
+            500,
+            lambda: self.finish_complete(task_id)
+        )
+
+    def finish_complete(self, task_id):
+        self.pending_completion.discard(task_id)
+        self.complete_task(task_id)
 
     # ════════════════════════════════════════════════════════════════════════
     #   RIGHT-CLICK  FIX – 4
@@ -281,7 +293,7 @@ class TaskManagerApp:
             text_container = tk.Frame(task_container, bg="white")
             text_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-            title_container = tk.Frame(text_container, bg="white")
+            title_container = tk.Frame(text_container, bg="white", height=22)
             title_container.pack(fill=tk.X)
 
             # Task label
@@ -297,7 +309,7 @@ class TaskManagerApp:
                 bd=0,
                 highlightthickness=0
             )
-            task_label.grid(row=0, column=0, sticky="ew")
+            task_label.grid(row=0, column=0, sticky="w")
             title_container.columnconfigure(0, weight=1)
 
             if not completed:                  # adjusted indentation for proper nesting within the code blocks
@@ -338,7 +350,7 @@ class TaskManagerApp:
             # ACTIVE TASKS
             if not completed:
                 circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#E30000"))
-                circle_btn.bind("<Leave>", lambda e, btn=circle_btn: btn.configure(fg="#8E8E93"))
+                circle_btn.bind("<Leave>", lambda e, btn=circle_btn, tid=task_id: btn.configure(fg="#E30000" if tid in self.pending_completion else "#8E8E93"))
                 circle_btn.bind("<ButtonPress-1>", lambda e, b=circle_btn: b.configure(text="◉", fg="#8E8E93"))
                 circle_btn.bind("<ButtonRelease-1>", lambda e, tid=task_id, btn=circle_btn: self.animate_complete(btn, tid))
 
@@ -394,6 +406,13 @@ class TaskManagerApp:
         edit_entry.focus_set()
         edit_entry.insert(0, current_title)
         edit_entry.icursor(tk.END)
+        edit_entry.configure(
+            highlightthickness=0,
+            bd=0,
+            relief="flat",
+            justify="left"
+        )
+        edit_entry.grid_configure(pady=(1, 0))
 
         edit_entry.grid(row=0, column=0, sticky="ew")
         parent.update_idletasks()
