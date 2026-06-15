@@ -346,7 +346,7 @@ class TaskManagerApp:
                 fg="#8E8E93" if not completed else "#E30000"
             )
             circle_btn.pack(side=tk.RIGHT, padx=10)
-
+#
             # ACTIVE TASKS
             if not completed:
                 circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#E30000"))
