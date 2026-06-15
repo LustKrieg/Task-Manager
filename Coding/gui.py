@@ -109,7 +109,7 @@ class TaskManagerApp:
 
         # ────────────── State ────────────────────────────────────────────────────
         self.current_view      = "active"
-        self.selected_task_id  = None   # (entry, label, task_id, old title)
+        self.selected_task_id  = None
         self.focus_job         = None
         self.highlighted_frame = None   # row currently highlighted by dbl-click
         self.pending_completion = set()
@@ -186,7 +186,7 @@ class TaskManagerApp:
         self.root.after(
             500,
             lambda: self.finish_complete(task_id)
-        )
+    )
 
     def finish_complete(self, task_id):
         self.pending_completion.discard(task_id)
@@ -330,7 +330,6 @@ class TaskManagerApp:
                 bg="white",
                 anchor="w",
                 highlightthickness=0
-
             )
             date_label.pack(anchor="w")
 
@@ -346,7 +345,7 @@ class TaskManagerApp:
                 fg="#8E8E93" if not completed else "#E30000"
             )
             circle_btn.pack(side=tk.RIGHT, padx=10)
-#
+
             # ACTIVE TASKS
             if not completed:
                 circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#E30000"))
@@ -371,6 +370,7 @@ class TaskManagerApp:
                     )
 
             # ────────────── Highlight row ───────────────────────────────────────────────────────
+            self._bind_rc_deep(task_container, task_id)
             tk.Frame(self.task_frame, bg="#D1D1D6", height=1).pack(fill=tk.X, pady=5)
 
     # ════════════════════════════════════════════════════════════════════════
