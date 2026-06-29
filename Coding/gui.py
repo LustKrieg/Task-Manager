@@ -112,7 +112,7 @@ class TaskManagerApp:
         self.selected_task_id  = None
         self.focus_job         = None
         self.highlighted_frame = None   # row currently highlighted by dbl-click
-        self.pending_completion = set()
+        self.pending_completion = {}
 
         # ────────────── Right-click context menu ──────────────────────────────────
         self.task_menu = tk.Menu(self.root, tearoff=0)
@@ -177,19 +177,22 @@ class TaskManagerApp:
         self.load_tasks()
 
     def animate_complete(self, button, task_id):
-        self.pending_completion.add(task_id)
 
-        button.configure(
-            text="◉",
-        fg="#E30000"
-    )
-        self.root.after(
-            500,
-            lambda: self.finish_complete(task_id)
-    )
+        if task_id in self.pending_completion:
+            job = self.pending_completion.pop(task_id)
+
+            self.root.after_cancel(job)
+
+            button.configure(text="○", fg="#8E8E93")
+            return
+        
+        button.configure(text="◉",fg="#E30000")
+
+        job = self.root.after(3000, lambda: self.finish_complete(task_id))
+        self.pending_completion[task_id] = job
 
     def finish_complete(self, task_id):
-        self.pending_completion.discard(task_id)
+        self.pending_completion.pop(task_id, None)
         self.complete_task(task_id)
 
     # ════════════════════════════════════════════════════════════════════════
