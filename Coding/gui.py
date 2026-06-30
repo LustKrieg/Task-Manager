@@ -1,8 +1,17 @@
 # Creating the Face of my Task-Manager
 import database as db
-import tkinter as tk
-from tkmacosx import Button
 from datetime import datetime
+import tkinter as tk
+import sys
+
+if sys.platform == "darwin":
+    from tkmacosx import Button
+else:
+    class Button(tk.Button):
+        def __init__(self, parent, **kwargs):
+            kwargs.pop("borderless", None)
+            kwargs.pop("focuscolor", None)
+            super().__init__(parent, **kwargs)
 
 TASK_ROW_HEIGHT = 54
 
@@ -239,9 +248,10 @@ class TaskManagerApp:
             font=("SF PRo Text", 14),
             bg="white",
             fg="black",
-            borderwidth=0,          # Removes the standard 3D box border
-            highlightthickness=0,   # Removes the macOS blue focus ring/box border
-            relief=tk.FLAT          # flattens the input widget completely
+            borderwidth=0,               # Removes the standard 3D box border
+            highlightthickness=0,        # Removes the macOS blue focus ring/box border
+            relief=tk.FLAT,              # flattens the input widget completely
+            insertbackground="#007AFF" # Adds color to a caret (blinking cursor)
         )
 
         empty_task.pack(side=tk.LEFT, fill=tk.X, expand=True)
