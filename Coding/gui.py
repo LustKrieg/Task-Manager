@@ -1,9 +1,14 @@
 # Creating the Face of my Task-Manager
+# / In the world of compromise, some don't 
+
+# ════════════════════════════════════════════════════════════════════════
+#   IMPORTS
+# ════════════════════════════════════════════════════════════════════════
 import database as db
 from datetime import datetime
 import tkinter as tk
-import sys
 
+import sys
 if sys.platform == "darwin":
     from tkmacosx import Button
 else:
@@ -13,8 +18,14 @@ else:
             kwargs.pop("focuscolor", None)
             super().__init__(parent, **kwargs)
 
+# ════════════════════════════════════════════════════════════════════════
+#   CONSTANTS
+# ════════════════════════════════════════════════════════════════════════
 TASK_ROW_HEIGHT = 54
 
+# ════════════════════════════════════════════════════════════════════════
+#   INITIALIZATION
+# ════════════════════════════════════════════════════════════════════════
 class TaskManagerApp:
     def __init__(self):
         self.root = tk.Tk()
@@ -131,7 +142,7 @@ class TaskManagerApp:
         self.load_tasks()
 
     # ════════════════════════════════════════════════════════════════════════
-    #   PUBLIC
+    #   PUBLIC API
     # ════════════════════════════════════════════════════════════════════════
     def run(self):
         self.root.mainloop()
@@ -156,7 +167,7 @@ class TaskManagerApp:
         self.load_tasks()
 
     # ════════════════════════════════════════════════════════════════════════
-    #   TASK CRUD HELPERS
+    #   TASK OPERATIONS
     # ════════════════════════════════════════════════════════════════════════
     def add_task_from_entry(self, entry):
         title = entry.get()
@@ -205,7 +216,7 @@ class TaskManagerApp:
         self.complete_task(task_id)
 
     # ════════════════════════════════════════════════════════════════════════
-    #   RIGHT-CLICK  FIX – 4
+    #   CONTEXT MENU
     # ════════════════════════════════════════════════════════════════════════
     def bind_right_click(self, widget, tid):
         def handler(event):
@@ -222,15 +233,15 @@ class TaskManagerApp:
             self._bind_rc_deep(child, tid)
 
     # ════════════════════════════════════════════════════════════════════════
-    #   LOAD / RENDER TASKS
+    #   ROW BUILDERS
     # ════════════════════════════════════════════════════════════════════════
-    def load_tasks(self):
-        self.current_edit = None
-        # Clear existing tasks
+    # ── Clear existing tasks ────────────────────────────────────────────
+    def clear_task_frame(self):
         for widget in self.task_frame.winfo_children():
             widget.destroy()
 
-        # ── "New Reminder" entry row ────────────────────────────────────────
+    # ── "New Reminder" entry row ────────────────────────────────────────
+    def create_new_task_row(self):
         new_task_container = tk.Frame(self.task_frame,bg="white")
         new_task_container.pack(fill=tk.X, pady=5)
         circle = tk.Label(
@@ -279,113 +290,133 @@ class TaskManagerApp:
         empty_task.bind("<FocusIn>", clear_placeholder)
         empty_task.bind("<FocusOut>", on_focus_out)
 
-        # ── Fetch tasks ─────────────────────────────────────────────────────
-        tasks = db.get_active_tasks() if self.current_view == "active" else db.get_completed_tasks()
+    # ── Format date ─────────────────────────────────────────────────────
+    def format_date(self, created_at):
+        try:                                                              # Format date/time (from "2025.10.21 14:30" to "Oct 21, 2:30 PM")
+            dt = datetime.fromisoformat(created_at)
+            return dt.strftime('%b %d, %I:%M %p')
+        except ValueError:                                                # Handle cases where the date format in the DB might be wrong
+            return f"Date Error: {created_at}"
+        except Exception as e:
+            return f"Error: {e}"
+    # ── Creating tasks ───────────────────────────────────────────────────  
+    def create_task_row(self, task):
+        task_id, title, completed, created_at  = task[0], task[1], task[2], task[3]
 
-        # Display each task
-        for task in tasks:
-            task_id, title, completed, created_at  = task[0], task[1], task[2], task[3]
+        date_str = self.format_date(created_at)
 
-            try:                                                              # Format date/time (from "2025.10.21 14:30" to "Oct 21, 2:30 PM")
-                dt = datetime.fromisoformat(created_at)
-                date_str = dt.strftime('%b %d, %I:%M %p')
-            except ValueError:                                                # Handle cases where the date format in the DB might be wrong
-                date_str = f"Date Error: {created_at}"
-            except Exception as e:
-                date_str = f"Error: {e}"
+        # ── Row container  ───────────────────────────────────────────────
+        task_container = tk.Frame(
+            self.task_frame,
+            bg="white",
+            height=TASK_ROW_HEIGHT                                         # fixed height, the row never jumps when we smap Label -> Entry
+        )
+        task_container.pack(fill=tk.X, pady=5)
+        task_container.pack_propagate(False)
+        
+        text_container = tk.Frame(task_container, bg="white")
+        text_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-            # ── Row container  ───────────────────────────────────────────────
-            task_container = tk.Frame(
-                self.task_frame,
-                bg="white",
-                height=TASK_ROW_HEIGHT             # fixed height, the row never jumps when we smap Label -> Entry
+        title_container = tk.Frame(text_container, bg="white", height=22)
+        title_container.pack(fill=tk.X)
+
+        # Task label
+        text_color = "black" if not completed else "#8E8E93"
+        
+        task_label = tk.Label(
+            title_container,
+            text=title,
+            font=("SF Pro Text", 14),
+            fg=text_color,
+            bg="white",
+            anchor="w",
+            bd=0,
+            highlightthickness=0
+        )
+        task_label.grid(row=0, column=0, sticky="w")
+        title_container.columnconfigure(0, weight=1)
+
+        if not completed:                  # adjusted indentation for proper nesting within the code blocks
+            task_label.bind(               # if not 4 indented spaces, all tasks would be as one in both sections
+                "<Button-1>",              # as of now, that change with "if not completed:" prohinits editing in completed tab
+                lambda e,
+                tid=task_id,
+                label=task_label:
+                self.edit_task(tid, label.cget("text"), label)
             )
-            task_container.pack(fill=tk.X, pady=5)
-            task_container.pack_propagate(False)
-            
-            text_container = tk.Frame(task_container, bg="white")
-            text_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-            title_container = tk.Frame(text_container, bg="white", height=22)
-            title_container.pack(fill=tk.X)
+        # Date/time label
+        date_label = tk.Label(
+            text_container,
+            text=date_str,
+            font=("SF Pro Text", 10),
+            fg="#8E8E93",
+            bg="white",
+            anchor="w",
+            highlightthickness=0
+        )
+        date_label.pack(anchor="w")
 
-            # Task label
-            text_color = "black" if not completed else "#8E8E93"
-            
-            task_label = tk.Label(
-                title_container,
-                text=title,
-                font=("SF Pro Text", 14),
-                fg=text_color,
-                bg="white",
-                anchor="w",
-                bd=0,
-                highlightthickness=0
-            )
-            task_label.grid(row=0, column=0, sticky="w")
-            title_container.columnconfigure(0, weight=1)
+        # Buttons on right side
+        # Complete button (only for active tasks)
 
-            if not completed:                  # adjusted indentation for proper nesting within the code blocks
-                task_label.bind(               # if not 4 indented spaces, all tasks would be as one in both sections
-                    "<Button-1>",              # as of now, that change with "if not completed:" prohinits editing in completed tab
-                    lambda e,
-                    tid=task_id,
-                    label=task_label:
-                    self.edit_task(tid, label.cget("text"), label)
+        # ── Completion circle ────────────────────────────────────────────
+        circle_btn = tk.Label(
+            task_container,
+            text="○" if not completed else "◉",
+            font=("SF Pro Text", 18),
+            bg="white",
+            fg="#8E8E93" if not completed else "#E30000"
+        )
+        circle_btn.pack(side=tk.RIGHT, padx=10)
+
+        # ACTIVE TASKS
+        if not completed:
+            circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#E30000"))
+            circle_btn.bind("<Leave>", lambda e, btn=circle_btn, tid=task_id: btn.configure(fg="#E30000" if tid in self.pending_completion else "#8E8E93"))
+            circle_btn.bind("<ButtonPress-1>", lambda e, b=circle_btn: b.configure(text="◉", fg="#8E8E93"))
+            circle_btn.bind("<ButtonRelease-1>", lambda e, tid=task_id, btn=circle_btn: self.animate_complete(btn, tid))
+
+        # COMPLETED TASKS
+        else:
+            circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#8E8E93"))
+            circle_btn.bind("<Leave>", lambda e, btn=circle_btn:btn.configure(fg="#E30000"))
+            circle_btn.bind("<ButtonPress-1>", lambda e, btn=circle_btn: btn.configure(text="◉", fg="#8E8E93"))
+            circle_btn.bind("<ButtonRelease-1>", lambda e, tid=task_id, btn=circle_btn: self.undo_task(tid))
+
+        # ── Single-click → inline edit  (active tasks only) ──────────────
+        if not completed:
+            for w in (task_label, title_container):
+                w.bind(
+                    "<Button-1>",
+                    lambda e, tid=task_id, lbl=task_label: 
+                    self.edit_task(tid, lbl.cget("text"), lbl),
                 )
 
-            # Date/time label
-            date_label = tk.Label(
-                text_container,
-                text=date_str,
-                font=("SF Pro Text", 10),
-                fg="#8E8E93",
-                bg="white",
-                anchor="w",
-                highlightthickness=0
-            )
-            date_label.pack(anchor="w")
+        # ────────────── Highlight row ───────────────────────────────────────────────────────
+        self._bind_rc_deep(task_container, task_id)
+        tk.Frame(self.task_frame, bg="#D1D1D6", height=1).pack(fill=tk.X, pady=5)
 
-            # Buttons on right side
-            # Complete button (only for active tasks)
+    # ════════════════════════════════════════════════════════════════════════
+    #   LOAD & REFRESH
+    # ════════════════════════════════════════════════════════════════════════
+    # ── Load tasks ──────────────────────────────────────────────────────
+    def load_tasks(self):
+        self.current_edit = None
 
-            # ── Completion circle ────────────────────────────────────────────
-            circle_btn = tk.Label(
-                task_container,
-                text="○" if not completed else "◉",
-                font=("SF Pro Text", 18),
-                bg="white",
-                fg="#8E8E93" if not completed else "#E30000"
-            )
-            circle_btn.pack(side=tk.RIGHT, padx=10)
+        self.clear_task_frame()
+        self.create_new_task_row()
+        tasks = self.get_tasks()
 
-            # ACTIVE TASKS
-            if not completed:
-                circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#E30000"))
-                circle_btn.bind("<Leave>", lambda e, btn=circle_btn, tid=task_id: btn.configure(fg="#E30000" if tid in self.pending_completion else "#8E8E93"))
-                circle_btn.bind("<ButtonPress-1>", lambda e, b=circle_btn: b.configure(text="◉", fg="#8E8E93"))
-                circle_btn.bind("<ButtonRelease-1>", lambda e, tid=task_id, btn=circle_btn: self.animate_complete(btn, tid))
+        for task in tasks:
+            self.create_task_row(task)
 
-            # COMPLETED TASKS
-            else:
-                circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#8E8E93"))
-                circle_btn.bind("<Leave>", lambda e, btn=circle_btn:btn.configure(fg="#E30000"))
-                circle_btn.bind("<ButtonPress-1>", lambda e, btn=circle_btn: btn.configure(text="◉", fg="#8E8E93"))
-                circle_btn.bind("<ButtonRelease-1>", lambda e, tid=task_id, btn=circle_btn: self.undo_task(tid))
-
-            # ── Single-click → inline edit  (active tasks only) ──────────────
-            if not completed:
-                for w in (task_label, title_container):
-                    w.bind(
-                        "<Button-1>",
-                        lambda e, tid=task_id, lbl=task_label: 
-                        self.edit_task(tid, lbl.cget("text"), lbl),
-                    )
-
-            # ────────────── Highlight row ───────────────────────────────────────────────────────
-            self._bind_rc_deep(task_container, task_id)
-            tk.Frame(self.task_frame, bg="#D1D1D6", height=1).pack(fill=tk.X, pady=5)
-
+    # ── Fetch tasks ─────────────────────────────────────────────────────
+    def get_tasks(self):
+        if self.current_view == "active":
+            return db.get_active_tasks()
+        return db.get_completed_tasks()
+    
     # ════════════════════════════════════════════════════════════════════════
     #   DETAIL POPUP
     # ════════════════════════════════════════════════════════════════════════
@@ -396,7 +427,7 @@ class TaskManagerApp:
     # ════════════════════════════════════════════════════════════════════════
 
     # ════════════════════════════════════════════════════════════════════════
-    #   INLINE EDIT
+    #   INLINE EDITING
     # ════════════════════════════════════════════════════════════════════════
     def edit_task(self, task_id, current_title, label_widget):
         if self.current_edit and self.current_edit[2] == task_id:
