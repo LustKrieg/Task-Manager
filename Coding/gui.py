@@ -299,17 +299,13 @@ class TaskManagerApp:
             return f"Date Error: {created_at}"
         except Exception as e:
             return f"Error: {e}"
-    # ── Creating tasks ───────────────────────────────────────────────────  
-    def create_task_row(self, task):
-        task_id, title, completed, created_at  = task[0], task[1], task[2], task[3]
-
-        date_str = self.format_date(created_at)
-
-        # ── Row container  ───────────────────────────────────────────────
+    
+    # ── Create task row containers ────────────────────────────────────────────────────
+    def create_row_containers(self):
         task_container = tk.Frame(
             self.task_frame,
             bg="white",
-            height=TASK_ROW_HEIGHT                                         # fixed height, the row never jumps when we smap Label -> Entry
+            height=TASK_ROW_HEIGHT                                         # fixed height, the row never jumps when we swap Label -> Entry
         )
         task_container.pack(fill=tk.X, pady=5)
         task_container.pack_propagate(False)
@@ -319,6 +315,16 @@ class TaskManagerApp:
 
         title_container = tk.Frame(text_container, bg="white", height=22)
         title_container.pack(fill=tk.X)
+
+        return task_container, text_container, title_container 
+    
+    # ── Creating tasks ───────────────────────────────────────────────────  
+    def create_task_row(self, task):
+        task_id, title, completed, created_at  = task[0], task[1], task[2], task[3]
+
+        date_str = self.format_date(created_at)
+
+        task_container, text_container, title_container = self.create_row_containers()
 
         # Task label
         text_color = "black" if not completed else "#8E8E93"
