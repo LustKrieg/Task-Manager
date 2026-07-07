@@ -97,6 +97,21 @@ class TaskManagerApp:
         )
         self.completed_tab_btn.pack(anchor="w", pady=5, padx=10)
 
+        #Trash tab button
+        self.trash_tab_btn = Button(
+            sidebar_frame,
+            text="Recently Deleted",
+            font=("SF Pro Text", 14),
+            bg="#E5E5EA",
+            borderless=1,
+            activebackground="#E5E5EA",
+            focuscolor="",
+            width=130,
+            height=60,
+            command=self.show_trash_tasks
+        )
+        self.trash_tab_btn.pack(anchor="w", pady=5, padx=10)
+
         # ───── Scrollable task area ──────────────────────────────────────────────────────
         canvas = tk.Canvas(content_frame, bg="white", highlightthickness=0)
         scrollbar = tk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
@@ -152,18 +167,25 @@ class TaskManagerApp:
     # ════════════════════════════════════════════════════════════════════════
     def show_active_tasks(self):
         self.current_view = "active"
-        # Update button styles
+        self.section_title.configure(text="Active")
         self.active_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.completed_tab_btn.configure(bg="#E5E5EA", fg="black")
-        self.section_title.configure(text="Active")
+        self.trash_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.load_tasks()
 
     def show_completed_tasks(self):
         self.current_view = "completed"
-        # Update button styles
         self.section_title.configure(text="Completed")
         self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.completed_tab_btn.configure(bg="#D1D1D6", fg="white")
+        self.trash_tab_btn.configure(bg="#E5E5EA", fg="black")
+        self.load_tasks()
+
+    def show_trash_tasks(self):
+        self.current_view = "trash"
+        self.section_title.configure(text="Recently Deleted")
+        self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
+        self.trash_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.load_tasks()
 
     # ════════════════════════════════════════════════════════════════════════
@@ -189,11 +211,11 @@ class TaskManagerApp:
         self.load_tasks()
 
     def delete_task(self, task_id):
-        db.delete_task(task_id)
+        db.move_to_trash(task_id)
         self.load_tasks()
 
     def popup_delete_task(self):
-        db.delete_task(self.selected_task_id)
+        db.move_to_trash(self.selected_task_id)
         self.load_tasks()
 
     def animate_complete(self, button, task_id):
@@ -421,7 +443,14 @@ class TaskManagerApp:
     def get_tasks(self):
         if self.current_view == "active":
             return db.get_active_tasks()
-        return db.get_completed_tasks()
+        
+        if self.current_view == "completed":
+            return db.get_completed_tasks()
+        
+        if self.current_view == "trash":
+            return db.get_deleted_tasks()
+        
+        return []
     
     # ════════════════════════════════════════════════════════════════════════
     #   DETAIL POPUP

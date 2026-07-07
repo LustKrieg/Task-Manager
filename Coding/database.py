@@ -21,7 +21,9 @@ def create_table():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             completed INTEGER DEFAULT 0,
-            created_at TEXT
+            created_at TEXT,
+            deleted INTEGER DEFAULT 0,
+            deleted_at TEXT
         )
     ''')
     
@@ -55,6 +57,7 @@ def get_active_tasks():
     cursor.execute('''
         SELECT id, title, completed, created_at FROM tasks
         WHERE completed = 0
+        AND deleted = 0
         ORDER BY created_at DESC
     ''')
     
@@ -70,6 +73,7 @@ def get_completed_tasks():
     cursor.execute('''
         SELECT * FROM tasks
         WHERE completed = 1
+        AND deleted = 0
         ORDER BY created_at DESC
     ''')
 
@@ -92,14 +96,18 @@ def mark_complete(task_id):
     conn.close()
 
 # Function 6 -- Remove It Forever
-def delete_task(task_id):
+def move_to_trash(task_id):
     conn = get_connection()
     cursor = conn.cursor()
     
+    deleted_at = datetime.now().isoformat()
+
     cursor.execute('''
-        DELETE FROM tasks 
+        UPDATE tasks 
+        SET deleted = 1,
+            deleted_at = ?
         WHERE id = ?
-    ''', (task_id,))
+    ''', (deleted_at, task_id))
     
     conn.commit()
     conn.close()
@@ -133,3 +141,19 @@ def update_task(task_id, new_title):
     
     conn.commit()
     conn.close()
+
+# Function 9 -- Deleting tasks to move to Deleted Recently
+def get_deleted_tasks():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT *
+        FROM tasks
+        WHERE deleted = 1
+        ORDER BY deleted_at DESC
+""")
+    
+    tasks = cursor.fetchall()
+    conn.close()
+    return tasks
