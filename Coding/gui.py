@@ -420,12 +420,14 @@ class TaskManagerApp:
         # Complete button (only for active tasks)
 
         # ── Completion circle ────────────────────────────────────────────
+        pending = task_id in self.pending_completion
+
         circle_btn = tk.Label(
             circle_container,
-            text="○" if not completed else "◉",
+            text="◉" if completed or pending else "○",
             font=("SF Pro Text", 18),
             bg="white",
-            fg="#8E8E93" if not completed else "#E30000"
+            fg="#E30000" if completed or pending else "#8E8E93"
         )
         circle_btn.pack(expand=True)
 
