@@ -201,6 +201,7 @@ class TaskManagerApp:
         self.current_view = "trash"
         self.section_title.configure(text="Recently Deleted")
         self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
+        self.completed_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.trash_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.empty_trash_btn.pack(side=tk.RIGHT)
         self.load_tasks()
