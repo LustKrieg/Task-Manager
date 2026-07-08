@@ -165,7 +165,7 @@ def restore_task(task_id):
 
     cursor.execute('''
         UPDATE tasks
-        SET deleted = 0
+        SET deleted = 0,
         deleted_at = NULL
         WHERE id = ?
 ''', (task_id,))

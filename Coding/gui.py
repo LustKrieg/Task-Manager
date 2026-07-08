@@ -62,17 +62,6 @@ class TaskManagerApp:
         self.toolbar = tk.Frame(content_frame, bg="white")
         self.toolbar.pack(fill=tk.X, padx=20, pady=(0, 10))
 
-        self.empty_trash_btn = Button(
-            self.toolbar,
-            text="Empty Trash",
-            font=("SF Pro Text", 12),
-            bg="#E8E8E8",
-            fg="white",
-            borderless=1,
-            command=self.empty_trash
-        )
-        self.empty_trash_btn.pack_forget()
-
         input_frame = tk.Frame(content_frame, bg="white")
         input_frame.pack(pady=20, padx=20, fill=tk.X)
 
@@ -185,7 +174,6 @@ class TaskManagerApp:
         self.active_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.completed_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.trash_tab_btn.configure(bg="#E5E5EA", fg="black")
-        self.empty_trash_btn.pack_forget()
         self.load_tasks()
 
     def show_completed_tasks(self):
@@ -194,7 +182,6 @@ class TaskManagerApp:
         self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.completed_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.trash_tab_btn.configure(bg="#E5E5EA", fg="black")
-        self.empty_trash_btn.pack_forget()
         self.load_tasks()
 
     def show_trash_tasks(self):
@@ -203,7 +190,6 @@ class TaskManagerApp:
         self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.completed_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.trash_tab_btn.configure(bg="#D1D1D6", fg="white")
-        self.empty_trash_btn.pack(side=tk.RIGHT)
         self.load_tasks()
 
     # ════════════════════════════════════════════════════════════════════════
@@ -279,6 +265,10 @@ class TaskManagerApp:
                 self.task_menu.add_command(label="Restore", command=lambda: self.restore_task(self.selected_task_id))
 
                 self.task_menu.add_command(label="Delete", command=lambda: self.delete_forever(self.selected_task_id))
+
+                self.task_menu.add_separator()
+
+                self.task_menu.add_command(label="Delete All", command=self.empty_trash)
             else:
                 self.task_menu.add_command(label="Delete", command=self.popup_delete_task)
 
