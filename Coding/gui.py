@@ -58,6 +58,21 @@ class TaskManagerApp:
         )
         self.section_title.pack(anchor="w", padx=20, pady=(20, 10))
 
+        # Toolbar (appears only in Recently Deleted)
+        self.toolbar = tk.Frame(content_frame, bg="white")
+        self.toolbar.pack(fill=tk.X, padx=20, pady=(0, 10))
+
+        self.empty_trash_btn = Button(
+            self.toolbar,
+            text="Empty Trash",
+            font=("SF Pro Text", 12),
+            bg="#E8E8E8",
+            fg="white",
+            borderless=1,
+            command=self.empty_trash
+        )
+        self.empty_trash_btn.pack_forget()
+
         input_frame = tk.Frame(content_frame, bg="white")
         input_frame.pack(pady=20, padx=20, fill=tk.X)
 
@@ -151,7 +166,6 @@ class TaskManagerApp:
 
         # ────────────── Right-click context menu ──────────────────────────────────
         self.task_menu = tk.Menu(self.root, tearoff=0)
-        self.task_menu.add_command(label="Delete",command=self.popup_delete_task)
 
         # Load active tasks by default
         self.load_tasks()
@@ -171,6 +185,7 @@ class TaskManagerApp:
         self.active_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.completed_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.trash_tab_btn.configure(bg="#E5E5EA", fg="black")
+        self.empty_trash_btn.pack_forget()
         self.load_tasks()
 
     def show_completed_tasks(self):
@@ -179,6 +194,7 @@ class TaskManagerApp:
         self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.completed_tab_btn.configure(bg="#D1D1D6", fg="white")
         self.trash_tab_btn.configure(bg="#E5E5EA", fg="black")
+        self.empty_trash_btn.pack_forget()
         self.load_tasks()
 
     def show_trash_tasks(self):
@@ -186,6 +202,7 @@ class TaskManagerApp:
         self.section_title.configure(text="Recently Deleted")
         self.active_tab_btn.configure(bg="#E5E5EA", fg="black")
         self.trash_tab_btn.configure(bg="#D1D1D6", fg="white")
+        self.empty_trash_btn.pack(side=tk.RIGHT)
         self.load_tasks()
 
     # ════════════════════════════════════════════════════════════════════════
@@ -214,8 +231,17 @@ class TaskManagerApp:
         db.move_to_trash(task_id)
         self.load_tasks()
 
-    def restore_task(task_id):
-        pass
+    def restore_task(self, task_id):
+        db.restore_task(task_id)
+        self.load_tasks()
+
+    def delete_forever(self, task_id):
+        db.delete_forever(task_id)
+        self.load_tasks()
+
+    def empty_trash(self):
+        db.empty_trash()
+        self.load_tasks()
 
     def popup_delete_task(self):
         db.move_to_trash(self.selected_task_id)
@@ -246,6 +272,15 @@ class TaskManagerApp:
     def bind_right_click(self, widget, tid):
         def handler(event):
             self.selected_task_id = tid
+            self.task_menu.delete(0, tk.END)
+
+            if self.current_view == "trash":
+                self.task_menu.add_command(label="Restore", command=lambda: self.restore_task(self.selected_task_id))
+
+                self.task_menu.add_command(label="Delete", command=lambda: self.delete_forever(self.selected_task_id))
+            else:
+                self.task_menu.add_command(label="Delete", command=self.popup_delete_task)
+
             self.task_menu.tk_popup(event.x_root, event.y_root)
             self.task_menu.grab_release()
 
@@ -327,25 +362,19 @@ class TaskManagerApp:
 
     # ── Create task row containers ────────────────────────────────────────────────────
     def create_row_containers(self):
-        task_container = tk.Frame(
-            self.task_frame,
-            bg="white"                                        # fixed height, the row never jumps when we swap Label -> Entry
-        )
+        task_container = tk.Frame(self.task_frame, bg="white")            # fixed height, the row never jumps when we swap Label -> Entry
         task_container.pack(fill=tk.X, pady=5)
-        
+
         text_container = tk.Frame(task_container, bg="white")
         text_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        circle_container = tk.Frame(
-            task_container,
-            bg="white",
-            width=44
-        )
+        circle_container = tk.Frame(task_container, bg="white", width=44)
         circle_container.pack(side=tk.RIGHT, fill=tk.Y)
         circle_container.pack_propagate(False)
 
-        title_container = tk.Frame(text_container, bg="white", height=22)
-        title_container.pack(fill=tk.X, expand=True)
+        title_container = tk.Frame(text_container, bg="white", height=30)
+        title_container.pack(fill=tk.X)
+        title_container.pack_propagate(False)
 
         return task_container, text_container, title_container, circle_container
 
@@ -444,7 +473,10 @@ class TaskManagerApp:
         self.current_edit = None
 
         self.clear_task_frame()
-        self.create_new_task_row()
+
+        if self.current_view != "trash":
+            self.create_new_task_row()
+
         tasks = self.get_tasks()
 
         for task in tasks:

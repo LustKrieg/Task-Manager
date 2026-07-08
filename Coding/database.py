@@ -157,3 +157,44 @@ def get_deleted_tasks():
     tasks = cursor.fetchall()
     conn.close()
     return tasks
+
+# Function 10 -- Restore tasks from Recently Deleted
+def restore_task(task_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        UPDATE tasks
+        SET deleted = 0
+        deleted_at = NULL
+        WHERE id = ?
+''', (task_id,))
+    
+    conn.commit()
+    conn.close()
+
+# Function 11 -- Delete task forever
+def delete_forever(task_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        DELETE FROM tasks
+        WHERE id = ?
+''', (task_id,))
+    
+    conn.commit()
+    conn.close()
+
+# Function 12 -- Empty Trash
+def empty_trash():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        DELETE FROM tasks
+        WHERE deleted = 1
+''')
+    
+    conn.commit()
+    conn.close()
