@@ -214,6 +214,9 @@ class TaskManagerApp:
         db.move_to_trash(task_id)
         self.load_tasks()
 
+    def restore_task(task_id):
+        pass
+
     def popup_delete_task(self):
         db.move_to_trash(self.selected_task_id)
         self.load_tasks()
@@ -321,32 +324,38 @@ class TaskManagerApp:
             return f"Date Error: {created_at}"
         except Exception as e:
             return f"Error: {e}"
-    
+
     # ── Create task row containers ────────────────────────────────────────────────────
     def create_row_containers(self):
         task_container = tk.Frame(
             self.task_frame,
-            bg="white",
-            height=TASK_ROW_HEIGHT                                         # fixed height, the row never jumps when we swap Label -> Entry
+            bg="white"                                        # fixed height, the row never jumps when we swap Label -> Entry
         )
         task_container.pack(fill=tk.X, pady=5)
-        task_container.pack_propagate(False)
         
         text_container = tk.Frame(task_container, bg="white")
-        text_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        text_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        circle_container = tk.Frame(
+            task_container,
+            bg="white",
+            width=44
+        )
+        circle_container.pack(side=tk.RIGHT, fill=tk.Y)
+        circle_container.pack_propagate(False)
 
         title_container = tk.Frame(text_container, bg="white", height=22)
-        title_container.pack(fill=tk.X)
+        title_container.pack(fill=tk.X, expand=True)
 
-        return task_container, text_container, title_container 
-    
+        return task_container, text_container, title_container, circle_container
+
     # ── Creating tasks ───────────────────────────────────────────────────  
     def create_task_row(self, task):
         task_id, title, completed, created_at  = task[0], task[1], task[2], task[3]
 
         date_str = self.format_date(created_at)
 
-        task_container, text_container, title_container = self.create_row_containers()
+        task_container, text_container, title_container, circle_container = self.create_row_containers()
 
         # Task label
         text_color = "black" if not completed else "#8E8E93"
@@ -359,7 +368,9 @@ class TaskManagerApp:
             bg="white",
             anchor="w",
             bd=0,
-            highlightthickness=0
+            highlightthickness=0,
+            wraplength=500,
+            justify="left"
         )
         task_label.grid(row=0, column=0, sticky="w")
         title_container.columnconfigure(0, weight=1)
@@ -383,20 +394,20 @@ class TaskManagerApp:
             anchor="w",
             highlightthickness=0
         )
-        date_label.pack(anchor="w")
+        date_label.pack(anchor="w", pady=(2, 0))
 
         # Buttons on right side
         # Complete button (only for active tasks)
 
         # ── Completion circle ────────────────────────────────────────────
         circle_btn = tk.Label(
-            task_container,
+            circle_container,
             text="○" if not completed else "◉",
             font=("SF Pro Text", 18),
             bg="white",
             fg="#8E8E93" if not completed else "#E30000"
         )
-        circle_btn.pack(side=tk.RIGHT, padx=10)
+        circle_btn.pack(expand=True)
 
         # ACTIVE TASKS
         if not completed:
@@ -493,6 +504,7 @@ class TaskManagerApp:
         )
         edit_entry.grid_configure(pady=(1, 0))
 
+        label_widget.grid_remove()
         edit_entry.grid(row=0, column=0, sticky="ew")
         parent.update_idletasks()
 
@@ -525,6 +537,7 @@ class TaskManagerApp:
         if entry.winfo_exists():
             entry.grid_forget()
             entry.destroy()
+            label.grid()
 
         label.config(text=final_title)
 
