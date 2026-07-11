@@ -246,7 +246,7 @@ class TaskManagerApp:
         
         button.configure(text="◉",fg="#E30000")
 
-        job = self.root.after(3000, lambda: self.finish_complete(task_id))
+        job = self.root.after(1000, lambda: self.finish_complete(task_id))
         self.pending_completion[task_id] = job
 
     def finish_complete(self, task_id):
@@ -395,7 +395,7 @@ class TaskManagerApp:
         task_label.grid(row=0, column=0, sticky="w")
         title_container.columnconfigure(0, weight=1)
 
-        if not completed:                  # adjusted indentation for proper nesting within the code blocks
+        if self.current_view == "acitve":                  # adjusted indentation for proper nesting within the code blocks
             task_label.bind(               # if not 4 indented spaces, all tasks would be as one in both sections
                 "<Button-1>",              # as of now, that change with "if not completed:" prohinits editing in completed tab
                 lambda e,
@@ -431,8 +431,11 @@ class TaskManagerApp:
         )
         circle_btn.pack(expand=True)
 
+        if self.current_view == "trash":
+            pass
+
         # ACTIVE TASKS
-        if not completed:
+        elif not completed:
             circle_btn.bind("<Enter>", lambda e, btn=circle_btn: btn.configure(fg="#E30000"))
             circle_btn.bind("<Leave>", lambda e, btn=circle_btn, tid=task_id: btn.configure(fg="#E30000" if tid in self.pending_completion else "#8E8E93"))
             circle_btn.bind("<ButtonPress-1>", lambda e, b=circle_btn: b.configure(text="◉", fg="#8E8E93"))
@@ -446,7 +449,7 @@ class TaskManagerApp:
             circle_btn.bind("<ButtonRelease-1>", lambda e, tid=task_id, btn=circle_btn: self.undo_task(tid))
 
         # ── Single-click → inline edit  (active tasks only) ──────────────
-        if not completed:
+        if self.current_view == "active":
             for w in (task_label, title_container):
                 w.bind(
                     "<Button-1>",
@@ -467,7 +470,7 @@ class TaskManagerApp:
 
         self.clear_task_frame()
 
-        if self.current_view != "trash":
+        if self.current_view == "active":
             self.create_new_task_row()
 
         tasks = self.get_tasks()
