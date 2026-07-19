@@ -30,6 +30,23 @@ def create_table():
     conn.commit()
     conn.close()
 
+# Function 1.5 -- Database Migration
+def migrate_database():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''PRAGMA table_info(tasks)''')
+    columns = [column[1] for column in cursor.fetchall()]
+
+    if "notes" not in columns:
+        cursor.execute('''
+            ALTER TABLE tasks
+            ADD COLUMN notes TEXT
+''')
+
+    conn.commit()
+    conn.close()
+
 # Function 2 -- Add a new task to the database
 def add_task(title):
     if not title.strip():
@@ -127,6 +144,7 @@ def mark_active(task_id):
     conn.close()
 
 create_table()
+migrate_database()
 
 # Function 8 -- editing an existing task
 def update_task(task_id, new_title):
@@ -198,3 +216,37 @@ def empty_trash():
     
     conn.commit()
     conn.close()
+
+# Function 13 -- Update Task Notes
+def update_notes(task_id, notes):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        UPDATE tasks
+        SET notes = ?
+        WHERE id = ?
+''', (notes, task_id))
+    
+    conn.commit()
+    conn.close()
+
+# Function 14 -- Get notes for a task
+def get_notes(task_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT notes
+        FROM tasks
+        WHERE id = ?
+''', (task_id,))
+    
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if result and result[0] is not None:
+        return result[0]
+    return ""
+
