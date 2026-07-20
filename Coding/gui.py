@@ -368,8 +368,8 @@ class TaskManagerApp:
         title_container.pack(fill=tk.X)
         title_container.pack_propagate(False)
 
-        notes_container = tk.Frame(text_container, bg="white")
-        notes_container.pack(fill=tk.X)
+        notes_container = tk.Frame(text_container, bg="white", height=26)
+        notes_container.pack_propagate(False)
 
         return task_container, text_container, title_container, notes_container, circle_container
 
@@ -399,8 +399,6 @@ class TaskManagerApp:
         )
         task_label.grid(row=0, column=0, sticky="w")
         title_container.columnconfigure(0, weight=1)
-
-        notes_container.pack(fill=tk.X)
 
         notes_label = tk.Label(
             notes_container,
@@ -433,6 +431,13 @@ class TaskManagerApp:
             highlightthickness=0
         )
         date_label.pack(anchor="w", pady=(2, 0))
+        notes_container.date_label = date_label
+
+        if notes.strip():
+            notes_label.pack(anchor="w", pady=(2, 0))
+            notes_container.pack(fill=tk.X, before=date_label)
+        else:
+            notes_container.pack_forget()
 
         # Buttons on right side
         # Complete button (only for active tasks)
@@ -573,7 +578,7 @@ class TaskManagerApp:
 
         label_widget.grid_remove()
 
-        notes_container.pack(fill=tk.X)
+        notes_container.pack(fill=tk.X, before=notes_container.date_label)
         for child in notes_container.winfo_children():
             child.destroy()
 
@@ -587,7 +592,7 @@ class TaskManagerApp:
             relief=tk.FLAT,
             insertbackground="#007AFF"
         )
-        notes_entry.pack(fill=tk.X, pady=(2, 0))
+        notes_entry.pack(fill=tk.X, expand=True, pady=(0, 0))
 
         current_notes = db.get_notes(task_id)
         self._setup_notes_placeholder(notes_entry, current_notes)
@@ -638,6 +643,7 @@ class TaskManagerApp:
             child.destroy()
 
         new_notes_text = db.get_notes(task_id)
+
         if new_notes_text.strip():
             new_label = tk.Label(
                 notes_container,
@@ -645,12 +651,12 @@ class TaskManagerApp:
                 font=("SF Pro Text", 11),
                 fg="#8E8E93",
                 bg="white",
-                anchor="w",
+                anchor="nw",
                 justify="left",
                 wraplength=500
             )
-            new_label.pack(anchor="w", pady=(2, 0))
-            notes_container.pack(fill=tk.X)
+            new_label.pack(anchor="nw", pady=(2, 0))
+            notes_container.pack(fill=tk.X, before=notes_container.date_label)
         else:
             notes_container.pack_forget()
 
