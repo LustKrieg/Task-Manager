@@ -400,6 +400,8 @@ class TaskManagerApp:
         task_label.grid(row=0, column=0, sticky="w")
         title_container.columnconfigure(0, weight=1)
 
+        notes_container.pack(fill=tk.X)
+
         notes_label = tk.Label(
             notes_container,
             text=notes,
@@ -414,10 +416,10 @@ class TaskManagerApp:
             notes_label.pack(anchor="w", pady=(2, 0))
 
         if self.current_view == "active":                  # adjusted indentation for proper nesting within the code blocks
-            task_label.bind(               # if not 4 indented spaces, all tasks would be as one in both sections
-                "<Button-1>",              # as of now, that change with "if not completed:" prohinits editing in completed tab
-                lambda e, tid=task_id, lbl=task_label, nlbl=notes_label, nc=notes_container:
-                self.edit_task(tid, lbl.cget("text"), lbl, nlbl, nc)
+            task_label.bind(                               # if not 4 indented spaces, all tasks would be as one in both sections
+                "<Button-1>",                              # as of now, that change with "if not completed:" prohinits editing in completed tab
+                lambda e, tid=task_id, lbl=task_label, nc=notes_container:
+                self.edit_task(tid, lbl.cget("text"), lbl, nc)
             )
 
         # Date/time label
@@ -469,8 +471,8 @@ class TaskManagerApp:
             for w in (task_label, title_container):
                 w.bind(
                     "<Button-1>",
-                    lambda e, tid=task_id, lbl=task_label, nlbl=notes_label, nc=notes_container: 
-                    self.edit_task(tid, lbl.cget("text"), lbl, nlbl, nc)
+                    lambda e, tid=task_id, lbl=task_label, nc=notes_container: 
+                    self.edit_task(tid, lbl.cget("text"), lbl, nc)
                 )
 
         # ────────────── Highlight row ───────────────────────────────────────────────────────
@@ -514,15 +516,39 @@ class TaskManagerApp:
     # for future development right-click pop-up window same as double trackpad click for delete button.
     # I don't want the window to be apart from the main window, just a nice popup as delete function.
     # ════════════════════════════════════════════════════════════════════════
-    #   ROW BACKGROUND COLOR
+    #   HELPER FUNCTIONS
     # ════════════════════════════════════════════════════════════════════════
+        # Set up placeholder behavior for the notes entry
+    def _setup_notes_placeholder(self, entry, current_text):
+        placeholder = "Notes"
+        if current_text.strip():
+            entry.insert(0, current_text)
+            entry.placeholder_active = False
+            entry.config(fg="#8E8E93")
+        else:
+            entry.insert(0, placeholder)
+            entry.placeholder_active = True
+            entry.config(fg="#8E8E93")
 
+        def on_focus_in(event):
+            if entry.get() == placeholder and entry.placeholder_active:
+                entry.delete(0, tk.END)
+                entry.placeholder_active = False
+
+        def on_focus_out(event):
+            if entry.get().strip() == "":
+                entry.delete(0, tk.END)
+                entry.insert(0, placeholder)
+                entry.placeholder_active = True
+
+        entry.bind("<FocusIn>", on_focus_in)
+        entry.bind("<FocusOut>", on_focus_out)
     # ════════════════════════════════════════════════════════════════════════
     #   INLINE EDITING
     # ════════════════════════════════════════════════════════════════════════
 
     # ── start editing ─────────────────────────────────────────────────────
-    def edit_task(self, task_id, current_title, label_widget, notes_label, notes_container):
+    def edit_task(self, task_id, current_title, label_widget, notes_container):
         if self.current_edit and self.current_edit[2] == task_id:
             return
 
@@ -530,7 +556,7 @@ class TaskManagerApp:
         
         parent = label_widget.master
 
-        edit_entry = tk.Entry(
+        title_entry = tk.Entry(
             parent,
             font=("SF Pro Text", 14),
             bg="white",
@@ -540,52 +566,41 @@ class TaskManagerApp:
             relief=tk.FLAT,
             insertbackground="#007AFF"
         )
-        edit_entry.focus_set()
-        edit_entry.insert(0, current_title)
-        edit_entry.icursor(tk.END)
-        edit_entry.configure(
-            highlightthickness=0,
-            bd=0,
-            relief="flat",
-            justify="left"
-        )
-        edit_entry.grid_configure(pady=(1, 0))
+        title_entry.insert(0, current_title)
+        title_entry.icursor(tk.END)
+        title_entry.grid(row=0, column=0, sticky="ew", pady=(1, 0))
+        title_entry.focus_set()
 
         label_widget.grid_remove()
-        notes_label.grid_remove()
-        edit_entry.grid(row=0, column=0, sticky="ew")
 
-        notes_title = tk.Label(
+        notes_container.pack(fill=tk.X)
+        for child in notes_container.winfo_children():
+            child.destroy()
+
+        notes_entry = tk.Entry(
             notes_container,
-            text="Notes",
             font=("SF Pro Text", 11),
-            fg="#8E8E93",
-            bg="white",
-            anchor="w"
-        )
-        notes_title.pack(anchor="w", pady=(8, 2))
-
-        notes_box = tk.Text(
-            notes_container,
-            height=1,
-            font=("SF Pro Text", 12),
             bg="white",
             fg="#8E8E93",
-            relief="flat",
-            bd=0,
+            borderwidth=0,
             highlightthickness=0,
-            wrap="word"
+            relief=tk.FLAT,
+            insertbackground="#007AFF"
         )
-        notes_box.insert("1.0", db.get_notes(task_id))
-        notes_box.pack(fill="x", pady=(0, 6))
+        notes_entry.pack(fill=tk.X, pady=(2, 0))
+
+        current_notes = db.get_notes(task_id)
+        self._setup_notes_placeholder(notes_entry, current_notes)
+        self.current_edit = (title_entry, label_widget, task_id, current_title, notes_entry, notes_container)
 
         parent.update_idletasks()
 
-#        edit_entry.bind("<FocusOut>", lambda e: self.finish_edit(save=True))
-        edit_entry.bind("<Return>", lambda e: self.finish_edit(save=True))
-        edit_entry.bind("<Escape>", lambda e: self.finish_edit(save=False))
+        # edit_entry.bind("<FocusOut>", lambda e: self.finish_edit(save=True))
+        title_entry.bind("<Return>", lambda e: self.finish_edit(save=True))
+        title_entry.bind("<Escape>", lambda e: self.finish_edit(save=False))
 
-        self.current_edit = (edit_entry, label_widget, task_id, current_title, notes_title, notes_box, notes_label)
+        notes_entry.bind("<Return>", lambda e: self.finish_edit(save=True))
+        notes_entry.bind("<Escape>", lambda e: self.finish_edit(save=False))
 
     # ── finish editing ─────────────────────────────────────────────────────
     def finish_edit(self, save=False, _skip_unbind=False):
@@ -595,39 +610,52 @@ class TaskManagerApp:
             self.root.after_cancel(self.focus_job)
             self.focus_job = None
 
-        entry, label, task_id, old_title, notes_title, notes_box, notes_label = self.current_edit
+        title_entry, label, task_id, old_title, notes_entry, notes_container = self.current_edit
 
         final_title = old_title
 
         if save:
-            typed = entry.get().strip()
-            notes = notes_box.get("1.0", "end-1c")
+            typed_title = title_entry.get().strip()
+            notes = notes_entry.get().strip()
+
+            if notes_entry.placeholder_active:
+                notes = ""
+            else:
+                notes = notes_entry.get().strip()
             db.update_notes(task_id, notes)
 
-            notes_label.config(text=notes)
-            if notes.strip():
-                notes_label.pack(anchor="w", pady=(2, 0))
-            else:
-                notes_label.pack_forget()
+            if typed_title:
+                final_title = typed_title
+                if typed_title != old_title:
+                    db.update_task(task_id, typed_title)
 
-            if typed:
-                final_title = typed
+        if title_entry.winfo_exists():
+            title_entry.destroy()
+        if notes_entry.winfo_exists():
+            notes_entry.destroy()
 
-                if typed != old_title:
-                    db.update_task(task_id, typed)
+        for child in notes_container.winfo_children():
+            child.destroy()
 
-        if entry.winfo_exists():
-            entry.destroy()
-
-        if notes_title.winfo_exists():
-            notes_title.destroy()
-
-        if notes_box.winfo_exists():
-            notes_box.destroy()
-
-        label.grid()
+        new_notes_text = db.get_notes(task_id)
+        if new_notes_text.strip():
+            new_label = tk.Label(
+                notes_container,
+                text=new_notes_text,
+                font=("SF Pro Text", 11),
+                fg="#8E8E93",
+                bg="white",
+                anchor="w",
+                justify="left",
+                wraplength=500
+            )
+            new_label.pack(anchor="w", pady=(2, 0))
+            notes_container.pack(fill=tk.X)
+        else:
+            notes_container.pack_forget()
 
         label.config(text=final_title)
+        label.grid()
 
         self.current_edit = None
 
