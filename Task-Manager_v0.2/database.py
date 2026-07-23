@@ -41,3 +41,24 @@ class TaskDatabase:
                 VALUES (?, ?, ?, ?, ?)
             ''', (title.strip(), notes, 0, 0, created_at))
             return True
+
+    def mark_complete(self, task_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute('''
+            UPDATE tasks 
+            SET completed = 1 
+            WHERE id = ?
+            ''', 
+            (task_id,)
+        )
+
+    def undo_task(self, task_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute('''
+            UPDATE tasks 
+                SET completed = 0 
+                WHERE id =?
+                ''',
+                (task_id,)
+            )
+    
