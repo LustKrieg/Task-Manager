@@ -10,6 +10,19 @@ class TaskDatabase:
     def _connect(self):
         return sqlite3.connect(self.db_path)
 
+    def create_table(self) -> None:
+        with self._connect() as conn:
+            conn.execute('''
+            CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            completed INTEGER DEFAULT 0,
+            created_at TEXT,
+            deleted INTEGER DEFAULT 0,
+            notes TEXT
+            )
+        ''')
+
     def get_active(self) -> List[Task]:
         with self._connect() as conn:
             cursor = conn.execute('''
