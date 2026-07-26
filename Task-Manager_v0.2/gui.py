@@ -21,11 +21,53 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
 
-        # --- Title ---
-        title = QLabel("Acitve")
-        title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        main_layout.addWidget(title)
+        # --- Tab Bar ---
+        self.current_tab = "active"
+        tab_layout = QHBoxLayout()
+        self.active_tab = QPushButton("Acitve")
+        self.completed_tab = QPushButton("Completed")
+        self.trash_tab = QPushButton("Recently Deleted")
 
+        # Styling Bar Tabs
+        for tab in (self.active_tab, self.completed_tab, self.trash_tab):
+            tab.setFlat(True)
+            tab.setStyleSheet('''
+                QPushButton{
+                border: none;
+                padding: 12px 16px;
+                font-size: 14px;
+                font=weight: 500;
+                color: #8E8E93;
+                background: transparent;
+                text-align: left;
+                border-radius: 8px;
+                }
+                QPushButton:hover {
+                background: #E5E5EA;
+                }
+                QPushButton:pressed {
+                    background: #D1D1D6;
+                }
+                QPushButton[active="true"] {
+                    background: #D1D1D6;
+                    color: black;
+                    font-weight: 600;
+                }
+            ''')
+
+        self.active_tab.setProperty("active", True)
+        self.active_tab.style().polish(self.active_tab)
+        
+        self.active_tab.clicked.connect(lambda: self.switch_tab("active"))
+        self.completed_tab.clicked.connect(lambda: self.switch_tab("completed"))
+        self.trash_tab.clicked.connect(lambda: self.switch_tab("trash"))
+
+        tab_layout.addWidget(self.active_tab)
+        tab_layout.addWidget(self.completed_tab)
+        tab_layout.addWidget(self.trash_tab)
+        tab_layout.addStretch()
+        main_layout.addLayout(tab_layout)
+            
         # --- Add Task Row ---
         add_layout = QHBoxLayout()
         self.task_input = QLineEdit()
@@ -55,35 +97,86 @@ class MainWindow(QMainWindow):
             self.task_input.clear()
             self.refresh_tasks()
 
+    def switch_tab(self, tab_name: str):
+        for tab, name in [(self.active_tab, "active"), 
+                        (self.completed_tab, "completed"), 
+                        (self.trash_tab, "trash")]:
+            tab.setProperty("active", name == tab_name)
+            tab.style().polish(tab)
+        
+        self.current_tab = tab_name
+        self.refresh_tasks()
+
     def refresh_tasks(self):
         for i in reversed(range(self.task_layout.count())):
             widget = self.task_layout.itemAt(i).widget()
             if widget:
                 widget.deleteLater()
 
-        tasks = self.service.get_active_tasks()
+        if self.current_tab == "active":
+            tasks = self.service.get_active_tasks()
+        elif self.current_tab == "completed":
+            tasks = self.service.get_completed_tasks()
+        else:
+            tasks = self.service.get_deleted_tasks()
 
         for task in tasks:
             row = QWidget()
+            row.setObjectName("taskRow")
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(0, 0, 0, 0)
 
-            circle = QPushButton("○")
+            title_label = QLabel(task.title)
+            title_label.setObjectName("tasktitle")
+
+            circle = QPushButton("○" if not task.completed else"◉")
             circle.setFixedSize(30, 30)
-            circle.setStyleSheet("border: 1px solid gray; border-radius: 15px")
-            circle.clicked.connect(lambda checked, tid=task.id: self.complete_task(tid))
+            circle.setStyleSheet('''
+                QPushButton {
+                border: 1.5px solid #8E8E93;
+                border-radius: 15px;
+                background: transparent;
+                color: #8E8E93;
+                font-size: 18px;
+                font-weight: 300;
+                }
+                QPushButton:hover {
+                border-color: #E30000;
+                color: #E30000;
+                background: rgba(227, 0, 0, 0,05);
+                }
+                QPushButton:hover {
+                border-color: #E30000;
+                color: #E30000;
+                background: rgba(227, 0, 0, 0,05);
+                }
+                QPushButton:pressed {
+                border-color: #E30000;
+                color: #E30000;
+                background: rgba(227, 0, 0, 0,05);
+                }
+            ''')
+
+            if self.current_tab == "active" and not task.completed:
+                circle.clicked.connect(lambda checked, tid=task.id: self.complete_task(tid))
+
+            elif self.current_tab == "completed" and task.completed:
+                circle.clicked.connect(lambda checked, tid=task.id: self.undo_task(tid))
 
             title_label = QLabel(task.title)
 
-
-            row_layout.addWidget(circle)
             row_layout.addWidget(title_label)
             row_layout.addStretch()
+            row_layout.addWidget(circle)
 
             self.task_layout.addWidget(row)
 
     def complete_task(self, task_id: int):
         self.service.complete_task(task_id)
+        self.refresh_tasks()
+
+    def undo_task(self, task_id: int):
+        self.service.undo_task(task_id)
         self.refresh_tasks()
 
 if __name__ == "__main__":
