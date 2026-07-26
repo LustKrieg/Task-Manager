@@ -95,20 +95,27 @@ class MainWindow(QMainWindow):
         content_layout.addWidget(self.title_label)
 
         # --- Add Task Row ---
-        add_layout = QHBoxLayout()
-        add_layout.setSpacing(10)
-
         self.task_input = QLineEdit()
         self.task_input.setPlaceholderText("New Reminder")
+        self.task_input.setStyleSheet('''
+            QLineEdit {
+                border: none;
+                background; white;
+                font-size: 15px;
+                padding: 10px 0px;
+            }
+            QLineEdit:focus {
+                border: none;
+            }
+        ''')
+
         self.task_input.returnPressed.connect(self.add_task)
+        content_layout.addWidget(self.task_input)
 
-        add_btn = QPushButton("Add")
-        add_btn.setObjectName("addButton")
-        add_btn.clicked.connect(self.add_task)
-
-        add_layout.addWidget(self.task_input)
-        add_layout.addWidget(add_btn)
-        content_layout.addLayout(add_layout)
+        entry_separator = QWidget()
+        entry_separator.setFixedHeight(1)
+        entry_separator.setStyleSheet("background-color: #D1D1D6;")
+        content_layout.addWidget(entry_separator)
 
         # --- Scroll Area for Tasks ---
         scroll = QScrollArea()
