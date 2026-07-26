@@ -16,6 +16,7 @@ class MainWindow(QMainWindow):
         self.service = service
         self.setWindowTitle("Task Manager")
         self.setGeometry(100, 100, 750, 500)
+        self.pending_timers = {}
 
         # --- Central Widget ---
         central = QWidget()
@@ -100,7 +101,8 @@ class MainWindow(QMainWindow):
         self.task_input.setStyleSheet('''
             QLineEdit {
                 border: none;
-                background; white;
+                background: white;
+                color: black;
                 font-size: 15px;
                 padding: 10px 0px;
             }
@@ -181,6 +183,11 @@ class MainWindow(QMainWindow):
         self.refresh_tasks()
 
     def refresh_tasks(self):
+        for timer in self.pending_timers.values():
+            timer.stop()
+            timer.deleteLater()
+        self.pending_timers.clear()
+
         for i in reversed(range(self.task_layout.count())):
             widget = self.task_layout.itemAt(i).widget()
             if widget:
@@ -196,7 +203,9 @@ class MainWindow(QMainWindow):
         for task in tasks:
             row = QWidget()
             row.setObjectName("taskRow")
-            row_layout = QHBoxLayout(row)
+            row.setFixedHeight(40)
+            row_layout = QHBoxLayout()
+            row.setLayout(row_layout)
             row_layout.setContentsMargins(0, 0, 0, 0)
 
             circle = QPushButton("○" if not task.completed else "◉")
@@ -218,12 +227,13 @@ class MainWindow(QMainWindow):
             """)
 
             if self.current_tab == "active" and not task.completed:
-                circle.clicked.connect(lambda checked, tid=task.id: self.complete_task(tid))
+                circle.clicked.connect(lambda checked, tid=task.id, btn=circle: self.handle_circle_click(tid, btn))
 
             elif self.current_tab == "completed" and task.completed:
                 circle.clicked.connect(lambda checked, tid=task.id: self.undo_task(tid))
 
             title_label = QLabel(task.title)
+            title_label.setStyleSheet("color: black; font-size: 15px;")
 
             row_layout.addWidget(title_label)
             row_layout.addStretch()
@@ -243,6 +253,45 @@ class MainWindow(QMainWindow):
     def undo_task(self, task_id: int):
         self.service.undo_task(task_id)
         self.refresh_tasks()
+
+    def handle_circle_click(self, task_id: int, circle_button):
+        if task_id in self.pending_timers:
+            timer = self.pending_timers.pop(task_id)
+            timer.stop()
+            timer.deleteLater()
+            circle_button.setText("○")
+            circle_button.setStyleSheet('''
+            QPushButton {
+                border: none;
+                background: transparent;
+                color: #8E8E93;
+                font-size: 22px;
+                font-weight: 300;
+            }
+            QPushButton:hover {color: #E30000;}
+            QPushButton:pressed {color: #E30000;}
+            ''')
+            return
+
+        circle_button.setText("◉")
+        circle_button.setStyleSheet('''
+            QPushButton {
+                border: none;
+                background: transparent;
+                color: #E30000;
+                font-size: 22px;
+                font-weight: 300;
+            }
+            QPushButton:hover { color: #E30000; }
+            QPushButton:pressed { color: #E30000; }
+        ''')
+
+        from PyQt6.QtCore import QTimer
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(lambda: self.complete_task(task_id))
+        timer.start(1500)
+        self.pending_timers[task_id] = timer
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
