@@ -127,3 +127,11 @@ class TaskDatabase:
             SET notes = ?
             WHERE id = ?
             ''', (notes, task_id))
+
+    def update_task_title(self, task_id: int, new_title: str) -> None:
+        with self._connect() as conn:
+            conn.execute('''
+            UPDATE tasks
+            SET title = ?
+            WHERE id = ?
+            ''', (new_title.strip(), task_id))
