@@ -232,10 +232,23 @@ class MainWindow(QMainWindow):
             elif self.current_tab == "completed" and task.completed:
                 circle.clicked.connect(lambda checked, tid=task.id: self.undo_task(tid))
 
+            # Left side: Title + Date (Vertical)
+            left_column = QWidget()
+            left_layout = QVBoxLayout(left_column)
+            left_layout.setContentsMargins(0, 0, 0, 0)
+            left_layout.setSpacing(2)
+
             title_label = QLabel(task.title)
             title_label.setStyleSheet("color: black; font-size: 15px;")
 
-            row_layout.addWidget(title_label)
+            date_label = QLabel(task.created_at.strftime('%b %d, %I:%M %p'))
+            date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
+
+            left_layout.addWidget(title_label)
+            left_layout.addWidget(date_label)
+            left_layout.addStretch()
+
+            row_layout.addWidget(left_column)
             row_layout.addStretch()
             row_layout.addWidget(circle)
 
