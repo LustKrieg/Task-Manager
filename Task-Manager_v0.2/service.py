@@ -38,6 +38,11 @@ class TaskService:
     def update_notes(self, task_id: int, notes: str) -> None:
         self.db.update_notes(task_id, notes)
 
+    def update_task_title(self, task_id: int, new_title: str) -> None:
+        if not new_title.strip():
+            return
+        self.db.update_task_title(task_id, new_title.strip())
+
 if __name__ == "__main__":
     db = TaskDatabase()
     db.create_table()
