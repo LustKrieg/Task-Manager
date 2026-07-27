@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFrame
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QShortcut, QKeySequence
 from database import TaskDatabase
 from service import TaskService
 
@@ -240,6 +240,9 @@ class MainWindow(QMainWindow):
 
             title_label = QLabel(task.title)
             title_label.setStyleSheet("color: black; font-size: 15px;")
+            title_label.mousePressEvent = (
+                lambda event, lbl=title_label, tid=task.id, title=task.title:
+                self.start_editing(lbl, tid, title))
 
             date_label = QLabel(task.created_at.strftime('%b %d, %I:%M %p'))
             date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
@@ -305,6 +308,41 @@ class MainWindow(QMainWindow):
         timer.timeout.connect(lambda: self.complete_task(task_id))
         timer.start(1500)
         self.pending_timers[task_id] = timer
+
+    def start_editing(self, title_label, task_id, current_title):
+        left_column = title_label.parent()
+        left_layout = left_column.layout()
+
+        edit = QLineEdit()
+        edit.setText(current_title)
+        edit.setStyleSheet('''
+            QLineEdit {
+                border: none;
+                background: white;
+                color: black;
+                font-size: 15px;
+                padding: 0px;
+            }
+        ''')
+
+        title_label.hide()
+        left_layout.insertWidget(0, edit)
+
+        edit.setFocus()
+        edit.selectAll()
+
+        def finish(save=True):
+            if save:
+                new_title = edit.text().strip()
+                if new_title and new_title != current_title:
+                    self.service.update_task_title(task_id, new_title)
+            self.refresh_tasks()
+
+        edit.returnPressed.connect(lambda: finish(True))
+        edit.editingFinished.connect(lambda: finish(True))
+
+        shortcut = QShortcut(QKeySequence("Escape"), edit)
+        shortcut.activated.connect(lambda: finish(False))
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
