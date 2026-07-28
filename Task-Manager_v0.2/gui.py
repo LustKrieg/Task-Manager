@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QScrollArea, QFrame
+    QScrollArea, QFrame, QSizePolicy
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence
@@ -203,7 +203,6 @@ class MainWindow(QMainWindow):
         for task in tasks:
             row = QWidget()
             row.setObjectName("taskRow")
-            row.setFixedHeight(40)
             row_layout = QHBoxLayout()
             row.setLayout(row_layout)
             row_layout.setContentsMargins(0, 0, 0, 0)
@@ -234,12 +233,15 @@ class MainWindow(QMainWindow):
 
             # Left side: Title + Date (Vertical)
             left_column = QWidget()
+            left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             left_layout = QVBoxLayout(left_column)
             left_layout.setContentsMargins(0, 0, 0, 0)
             left_layout.setSpacing(2)
 
             title_label = QLabel(task.title)
             title_label.setStyleSheet("color: black; font-size: 15px;")
+            title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            title_label.setWordWrap(True)
             title_label.mousePressEvent = (
                 lambda event, lbl=title_label, tid=task.id, title=task.title:
                 self.start_editing(lbl, tid, title))
@@ -252,7 +254,7 @@ class MainWindow(QMainWindow):
             left_layout.addStretch()
 
             row_layout.addWidget(left_column)
-            row_layout.addStretch()
+            row_layout.setStretchFactor(left_column, 1)
             row_layout.addWidget(circle)
 
             self.task_layout.addWidget(row)
@@ -324,6 +326,7 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }
         ''')
+        edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         title_label.hide()
         left_layout.insertWidget(0, edit)
