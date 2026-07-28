@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QScrollArea, QFrame, QSizePolicy
+    QScrollArea, QFrame, QSizePolicy, QTextEdit
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence
@@ -315,10 +315,10 @@ class MainWindow(QMainWindow):
         left_column = title_label.parent()
         left_layout = left_column.layout()
 
-        edit = QLineEdit()
-        edit.setText(current_title)
+        edit = QTextEdit()
+        edit.setPlainText(current_title)
         edit.setStyleSheet('''
-            QLineEdit {
+            QTextEdit {
                 border: none;
                 background: white;
                 color: black;
@@ -327,6 +327,7 @@ class MainWindow(QMainWindow):
             }
         ''')
         edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        edit.setMaximumHeight(100)
 
         title_label.hide()
         left_layout.insertWidget(0, edit)
@@ -336,13 +337,13 @@ class MainWindow(QMainWindow):
 
         def finish(save=True):
             if save:
-                new_title = edit.text().strip()
+                new_title = edit.toPlainText().strip()
                 if new_title and new_title != current_title:
                     self.service.update_task_title(task_id, new_title)
             self.refresh_tasks()
 
-        edit.returnPressed.connect(lambda: finish(True))
-        edit.editingFinished.connect(lambda: finish(True))
+        save_shortcut = QShortcut(QKeySequence("Ctrl+Return"), edit)
+        save_shortcut.activated.connect(lambda: finish(True))
 
         shortcut = QShortcut(QKeySequence("Escape"), edit)
         shortcut.activated.connect(lambda: finish(False))
