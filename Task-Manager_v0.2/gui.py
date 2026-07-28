@@ -162,6 +162,8 @@ class MainWindow(QMainWindow):
         # --- Load tasks ---
         self.refresh_tasks()
 
+        self.setFocus()
+
     def add_task(self):
         title = self.task_input.text().strip()
         if title:
