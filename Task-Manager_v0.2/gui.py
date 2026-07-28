@@ -2,9 +2,9 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QScrollArea, QFrame, QSizePolicy, QTextEdit
+    QScrollArea, QFrame, QSizePolicy, QTextEdit, QSpacerItem
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QEvent, QObject
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence
 from database import TaskDatabase
 from service import TaskService
@@ -185,6 +185,8 @@ class MainWindow(QMainWindow):
         self.refresh_tasks()
 
     def refresh_tasks(self):
+        self.close_current_edit(True, skip_refresh=True)
+
         for timer in self.pending_timers.values():
             timer.stop()
             timer.deleteLater()
@@ -314,8 +316,16 @@ class MainWindow(QMainWindow):
         self.pending_timers[task_id] = timer
 
     def start_editing(self, title_label, task_id, current_title):
+        self.close_current_edit(True, skip_refresh=False)
+
         left_column = title_label.parent()
         left_layout = left_column.layout()
+
+        for i in reversed(range(left_layout.count())):
+            item = left_layout.itemAt(i)
+            if item and isinstance(item, QSpacerItem):
+                left_layout.takeAt(i)
+                break
 
         edit = QTextEdit()
         edit.setPlainText(current_title)
@@ -330,6 +340,7 @@ class MainWindow(QMainWindow):
         ''')
         edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         edit.setMaximumHeight(100)
+        edit.setMinimumHeight(35)
 
         title_label.hide()
         left_layout.insertWidget(0, edit)
@@ -337,18 +348,56 @@ class MainWindow(QMainWindow):
         edit.setFocus()
         edit.selectAll()
 
-        def finish(save=True):
-            if save:
+        def finish(save=True, skip_refresh=False):
+            try:
                 new_title = edit.toPlainText().strip()
+            except RuntimeError:
+                new_title = None
+            if save and new_title is not None:
                 if new_title and new_title != current_title:
                     self.service.update_task_title(task_id, new_title)
-            self.refresh_tasks()
+
+            try:
+                left_layout.addStretch()
+            except RuntimeError:
+                pass
+
+            self._current_edit_finish = None
+
+            if not skip_refresh:
+                self.refresh_tasks()
+
+        self._current_edit_finish = finish
 
         save_shortcut = QShortcut(QKeySequence("Ctrl+Return"), edit)
         save_shortcut.activated.connect(lambda: finish(True))
 
         shortcut = QShortcut(QKeySequence("Escape"), edit)
-        shortcut.activated.connect(lambda: finish(False))
+        shortcut.activated.connect(lambda: finish(True))
+
+        filter_obj = EnterFilter(edit, finish)
+        edit.installEventFilter(filter_obj)
+        edit._enter_filter = filter_obj
+
+    def close_current_edit(self, save=True, skip_refresh=False):
+        if hasattr(self, '_current_edit_finish') and self._current_edit_finish:
+            self._current_edit_finish(save, skip_refresh)
+
+class EnterFilter(QObject):
+    def __init__(self, edit_widget, finish_func):
+        super().__init__()
+        self.edit = edit_widget
+        self.finish = finish_func
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            if key == Qt.Key.Key_Return or key == Qt.Key.Key_Enter:
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                    return False
+                self.finish(True)
+                return True
+        return False
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
