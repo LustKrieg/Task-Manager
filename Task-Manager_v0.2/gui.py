@@ -342,7 +342,17 @@ class MainWindow(QMainWindow):
 
         fm = QFontMetrics(edit.font())
         line_height = fm.lineSpacing()
+
         edit.setFixedHeight(line_height + 4)
+        edit.setMaximumHeight(100)
+
+        def adjust_height():
+            doc_height = int(edit.document().size().height())
+            new_height = max(line_height + 4, min(doc_height + 4, 100))
+            edit.setFixedHeight(new_height)
+
+        edit.document().contentsChanged.connect(adjust_height)
+        adjust_height()
 
         title_label.hide()
         left_layout.insertWidget(0, edit)
