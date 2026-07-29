@@ -208,6 +208,7 @@ class MainWindow(QMainWindow):
         for task in tasks:
             row = QWidget()
             row.setObjectName("taskRow")
+            row.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             row_layout = QHBoxLayout()
             row.setLayout(row_layout)
             row_layout.setContentsMargins(0, 0, 0, 0)
@@ -238,14 +239,14 @@ class MainWindow(QMainWindow):
 
             # Left side: Title + Date (Vertical)
             left_column = QWidget()
-            left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             left_layout = QVBoxLayout(left_column)
             left_layout.setContentsMargins(0, 0, 0, 0)
             left_layout.setSpacing(2)
 
             title_label = QLabel(task.title)
             title_label.setStyleSheet("color: black; font-size: 15px;")
-            title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             title_label.setWordWrap(True)
 
             def make_press_handler(lbl, tid, t):
@@ -259,7 +260,6 @@ class MainWindow(QMainWindow):
 
             left_layout.addWidget(title_label)
             left_layout.addWidget(date_label)
-            left_layout.addStretch()
 
             row_layout.addWidget(left_column)
             row_layout.setStretchFactor(left_column, 1)
