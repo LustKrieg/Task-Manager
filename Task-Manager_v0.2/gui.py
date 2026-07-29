@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFrame, QSizePolicy, QTextEdit, QSpacerItem
 )
 from PyQt6.QtCore import Qt, QEvent, QObject
-from PyQt6.QtGui import QFont, QShortcut, QKeySequence
+from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QFontMetrics
 from database import TaskDatabase
 from service import TaskService
 
@@ -321,14 +321,12 @@ class MainWindow(QMainWindow):
         left_column = title_label.parent()
         left_layout = left_column.layout()
 
-        for i in reversed(range(left_layout.count())):
-            item = left_layout.itemAt(i)
-            if item and isinstance(item, QSpacerItem):
-                left_layout.takeAt(i)
-                break
+        left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        left_layout.setSpacing(0)
 
         edit = QTextEdit()
         edit.setPlainText(current_title)
+        edit.document().setDocumentMargin(0)
         edit.setStyleSheet('''
             QTextEdit {
                 border: none;
@@ -338,9 +336,13 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }
         ''')
-        edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        edit.setMaximumHeight(100)
-        edit.setMinimumHeight(35)
+        edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        edit.document().setDocumentMargin(0)
+
+        fm = QFontMetrics(edit.font())
+        line_height = fm.lineSpacing()
+        edit.setFixedHeight(line_height + 4)
 
         title_label.hide()
         left_layout.insertWidget(0, edit)
@@ -357,11 +359,6 @@ class MainWindow(QMainWindow):
                 if new_title and new_title != current_title:
                     self.service.update_task_title(task_id, new_title)
 
-            try:
-                left_layout.addStretch()
-            except RuntimeError:
-                pass
-
             self._current_edit_finish = None
 
             if not skip_refresh:
@@ -369,11 +366,8 @@ class MainWindow(QMainWindow):
 
         self._current_edit_finish = finish
 
-        save_shortcut = QShortcut(QKeySequence("Ctrl+Return"), edit)
-        save_shortcut.activated.connect(lambda: finish(True))
-
-        shortcut = QShortcut(QKeySequence("Escape"), edit)
-        shortcut.activated.connect(lambda: finish(True))
+        QShortcut(QKeySequence("Ctrl+Return"), edit).activated.connect(lambda: finish(True))
+        QShortcut(QKeySequence("Escape"), edit).activated.connect(lambda: finish(True))
 
         filter_obj = EnterFilter(edit, finish)
         edit.installEventFilter(filter_obj)
