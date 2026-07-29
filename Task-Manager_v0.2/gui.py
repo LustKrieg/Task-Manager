@@ -4,10 +4,11 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QLineEdit, QPushButton, QLabel,
     QScrollArea, QFrame, QSizePolicy, QTextEdit, QSpacerItem
 )
-from PyQt6.QtCore import Qt, QEvent, QObject
+from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QFontMetrics
 from database import TaskDatabase
 from service import TaskService
+from PyQt6 import sip
 
 class MainWindow(QMainWindow):
     def __init__(self, service: TaskService):
@@ -246,9 +247,12 @@ class MainWindow(QMainWindow):
             title_label.setStyleSheet("color: black; font-size: 15px;")
             title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             title_label.setWordWrap(True)
-            title_label.mousePressEvent = (
-                lambda event, lbl=title_label, tid=task.id, title=task.title:
-                self.start_editing(lbl, tid, title))
+
+            def make_press_handler(lbl, tid, t):
+                def handler(event):
+                    QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t))
+                return handler
+            title_label.mousePressEvent = make_press_handler(title_label, task.id, task.title)
 
             date_label = QLabel(task.created_at.strftime('%b %d, %I:%M %p'))
             date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
@@ -316,7 +320,10 @@ class MainWindow(QMainWindow):
         self.pending_timers[task_id] = timer
 
     def start_editing(self, title_label, task_id, current_title):
-        self.close_current_edit(True, skip_refresh=False)
+        self.close_current_edit(True, skip_refresh=True)
+
+        if sip.isdeleted(title_label):
+            return
 
         left_column = title_label.parent()
         left_layout = left_column.layout()
@@ -336,38 +343,65 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }
         ''')
-        edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         edit.document().setDocumentMargin(0)
 
         fm = QFontMetrics(edit.font())
         line_height = fm.lineSpacing()
 
-        edit.setFixedHeight(line_height + 4)
-        edit.setMaximumHeight(100)
-
         def adjust_height():
+            if sip.isdeleted(edit):
+                return
             doc_height = int(edit.document().size().height())
             new_height = max(line_height + 4, min(doc_height + 4, 100))
             edit.setFixedHeight(new_height)
 
         edit.document().contentsChanged.connect(adjust_height)
-        adjust_height()
+        QTimer.singleShot(0, adjust_height)
 
         title_label.hide()
         left_layout.insertWidget(0, edit)
+
+        # self._current_edit_widget = edit
+        # self._current_edit_label = title_label
 
         edit.setFocus()
         edit.selectAll()
 
         def finish(save=True, skip_refresh=False):
+            if not sip.isdeleted(edit):
+                try:
+                    edit.document().contentsChanged.disconnect(adjust_height)
+                except TypeError:
+                    pass
+
             try:
                 new_title = edit.toPlainText().strip()
             except RuntimeError:
                 new_title = None
+
             if save and new_title is not None:
                 if new_title and new_title != current_title:
                     self.service.update_task_title(task_id, new_title)
+                    if not sip.isdeleted(title_label):
+                        title_label.setText(new_title)
+
+            if not sip.isdeleted(edit):
+                left_layout.removeWidget(edit)
+                edit.setParent(None)
+                edit.deleteLater()
+
+            try:
+                left_layout.addStretch()
+                left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                left_layout.update()
+                left_column.update()
+            except RuntimeError:
+                pass
+
+            if not sip.isdeleted(title_label):
+                title_label.show()
 
             self._current_edit_finish = None
 
