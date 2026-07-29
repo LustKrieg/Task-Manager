@@ -253,8 +253,14 @@ class MainWindow(QMainWindow):
                 def handler(event):
                     QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t))
                 return handler
-            title_label.mousePressEvent = make_press_handler(title_label, task.id, task.title)
 
+            if self.current_tab == "active":
+                title_label.mousePressEvent = make_press_handler(
+                    title_label,
+                    task.id,
+                    task.title
+                )
+            
             date_label = QLabel(task.created_at.strftime('%b %d, %I:%M %p'))
             date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
 
