@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFrame, QSizePolicy, QTextEdit, QSpacerItem
 )
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
-from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QFontMetrics
+from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QFontMetrics, QTextCursor, QPalette, QColor
 from database import TaskDatabase
 from service import TaskService
 from PyQt6 import sip
@@ -363,11 +363,8 @@ class MainWindow(QMainWindow):
         title_label.hide()
         left_layout.insertWidget(0, edit)
 
-        # self._current_edit_widget = edit
-        # self._current_edit_label = title_label
-
         edit.setFocus()
-        edit.selectAll()
+        edit.moveCursor(QTextCursor.MoveOperation.End)
 
         def finish(save=True, skip_refresh=False):
             if not sip.isdeleted(edit):
