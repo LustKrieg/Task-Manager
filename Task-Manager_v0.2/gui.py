@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFrame, QSizePolicy, QTextEdit, QSpacerItem
 )
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
-from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QFontMetrics, QTextCursor, QPalette, QColor
+from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QFontMetrics, QTextCursor, QPainter, QColor
 from database import TaskDatabase
 from service import TaskService
 from PyQt6 import sip
@@ -353,9 +353,13 @@ class MainWindow(QMainWindow):
         def adjust_height():
             if sip.isdeleted(edit):
                 return
-            doc_height = int(edit.document().size().height())
-            new_height = max(line_height + 4, min(doc_height + 4, 100))
-            edit.setFixedHeight(new_height)
+
+            doc = edit.document()
+            doc.setTextWidth(edit.viewport().width())
+            doc_height = int(doc.size().height())
+            edit.setFixedHeight(doc_height + 6)
+            edit.setFocus()
+            edit.moveCursor(QTextCursor.MoveOperation.End)
 
         edit.document().contentsChanged.connect(adjust_height)
         QTimer.singleShot(0, adjust_height)
