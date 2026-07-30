@@ -251,8 +251,10 @@ class MainWindow(QMainWindow):
 
             def make_press_handler(lbl, tid, t):
                 def handler(event):
-                    QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t))
+                    if event.button() == Qt.MouseButton.LeftButton:
+                        QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t))
                 return handler
+            title_label.mousePressEvent = make_press_handler(title_label, task.id, task.title)
 
             if self.current_tab == "active":
                 title_label.mousePressEvent = make_press_handler(

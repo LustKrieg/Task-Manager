@@ -135,3 +135,14 @@ class TaskDatabase:
             SET title = ?
             WHERE id = ?
             ''', (new_title.strip(), task_id))
+
+    def restore_all(self) -> None:
+        with self._connect() as conn:
+            conn.execute('''
+            UPDATE tasks
+            SET deleted = 0
+            deleted_at = NULL
+            WHERE deleted = 1
+            ''')
+
+    
