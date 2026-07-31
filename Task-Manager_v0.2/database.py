@@ -141,7 +141,6 @@ class TaskDatabase:
             conn.execute('''
             UPDATE tasks
             SET deleted = 0
-            deleted_at = NULL
             WHERE deleted = 1
             ''')
 
