@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QScrollArea, QFrame, QSizePolicy, QTextEdit, QSpacerItem
+    QScrollArea, QFrame, QSizePolicy, QTextEdit, QSpacerItem, QMenu
 )
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QFontMetrics, QTextCursor, QPainter, QColor
@@ -211,6 +211,8 @@ class MainWindow(QMainWindow):
             row.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             row_layout = QHBoxLayout()
             row.setLayout(row_layout)
+            row.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            row.customContextMenuRequested.connect(lambda pos, tid=task.id: self.show_context_menu(pos, tid))
             row_layout.setContentsMargins(0, 0, 0, 0)
 
             circle = QPushButton("○" if not task.completed else "◉")
@@ -255,13 +257,6 @@ class MainWindow(QMainWindow):
                         QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t))
                 return handler
             title_label.mousePressEvent = make_press_handler(title_label, task.id, task.title)
-
-            if self.current_tab == "active":
-                title_label.mousePressEvent = make_press_handler(
-                    title_label,
-                    task.id,
-                    task.title
-                )
             
             date_label = QLabel(task.created_at.strftime('%b %d, %I:%M %p'))
             date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
@@ -429,6 +424,53 @@ class MainWindow(QMainWindow):
     def close_current_edit(self, save=True, skip_refresh=False):
         if hasattr(self, '_current_edit_finish') and self._current_edit_finish:
             self._current_edit_finish(save, skip_refresh)
+
+    def restore_task(self, task_id: int):
+        self.service.restore_task(task_id)
+        self.refresh_tasks()
+        
+    def restore_all_tasks(self):
+        self.service.restore_all()
+        self.refresh_tasks()
+
+    def popup_delete_task(self):
+        self.move_to_trash(self.selected_task_id)
+
+    def move_to_trash(self, task_id: int):
+        self.service.move_to_trash(task_id)
+        self.refresh_tasks()
+
+    def delete_forever(self, task_id: int):
+        self.service.delete_forever(task_id)
+        self.refresh_tasks()
+
+    def empty_trash(self):
+        self.service.empty_trash()
+        self.refresh_tasks()
+
+    def show_context_menu(self, pos, task_id):
+        menu = QMenu()
+        self.selected_task_id = task_id
+
+        if self.current_tab == "trash":
+            action_restore = menu.addAction("Restore")
+            action_restore.triggered.connect(lambda: self.restore_task(self.selected_task_id))
+
+            action_delete = menu.addAction("Delete Forever")
+            action_delete.triggered.connect(lambda: self.delete_forever(self.selected_task_id))
+
+            menu.addSeparator()
+
+            action_restore_all = menu.addAction("Restore All")
+            action_restore_all.triggered.connect(self.restore_all_tasks)
+
+            action_empty = menu.addAction("Delete All")
+            action_empty.triggered.connect(self.empty_trash)
+        else:
+            action_delete = menu.addAction("Delete")
+            action_delete.triggered.connect(self.popup_delete_task)
+
+        menu.exec(self.sender().mapToGlobal(pos))
 
 class EnterFilter(QObject):
     def __init__(self, edit_widget, finish_func):
