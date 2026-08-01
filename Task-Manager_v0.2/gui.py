@@ -250,13 +250,14 @@ class MainWindow(QMainWindow):
             title_label.setStyleSheet("color: black; font-size: 15px;")
             title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             title_label.setWordWrap(True)
-
-            def make_press_handler(lbl, tid, t):
-                def handler(event):
-                    if event.button() == Qt.MouseButton.LeftButton:
-                        QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t))
-                return handler
-            title_label.mousePressEvent = make_press_handler(title_label, task.id, task.title)
+            
+            if self.current_tab == "acitve":
+                def make_press_handler(lbl, tid, t):
+                    def handler(event):
+                        if event.button() == Qt.MouseButton.LeftButton:
+                            QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t))
+                    return handler
+                title_label.mousePressEvent = make_press_handler(title_label, task.id, task.title)
             
             date_label = QLabel(task.created_at.strftime('%b %d, %I:%M %p'))
             date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
