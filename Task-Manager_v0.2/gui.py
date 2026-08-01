@@ -264,7 +264,6 @@ class MainWindow(QMainWindow):
             # --- Notes ---
             notes_text = None
             if task.notes and task.notes.strip():
-
                 notes_text = QLabel(task.notes)
                 notes_text.setStyleSheet(''' color: #8E8E93; font-size: 12px; ''')
                 notes_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -394,15 +393,6 @@ class MainWindow(QMainWindow):
                 }
             ''')
 
-        # --- Notes Label ---
-        notes_label_edit = QLabel("Notes")
-        notes_label_edit.setStyleSheet('''
-            color: #8E8E93;
-            font-size: 11px;
-            font-weight: normal;
-        ''')
-        notes_label_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
         # -- Height Adjustment ---
         fm = QFontMetrics(edit.font())
         line_height = fm.lineSpacing()
@@ -430,10 +420,7 @@ class MainWindow(QMainWindow):
                 notes_text.hide()
 
         left_layout.insertWidget(0, edit)
-        left_layout.insertWidget(1, notes_label_edit)
-        left_layout.insertWidget(2, notes_entry)
-
-        edit._notes_label_edit = notes_label_edit
+        left_layout.insertWidget(1, notes_entry)
 
         edit.setFocus()
         edit.moveCursor(QTextCursor.MoveOperation.End)
@@ -473,14 +460,6 @@ class MainWindow(QMainWindow):
                     left_layout.removeWidget(notes_entry)
                     notes_entry.setParent(None)
                     notes_entry.deleteLater()
-
-            if hasattr(edit, '_notes_label_edit') and edit._notes_label_edit:
-                notes_label_edit = edit._notes_label_edit
-                if not sip.isdeleted(notes_label_edit):
-                    left_layout.removeWidget(notes_label_edit)
-                    notes_label_edit.setParent(None)
-                    notes_label_edit.deleteLater()
-
 
             try:
                 left_layout.addStretch()
