@@ -437,7 +437,7 @@ class MainWindow(QMainWindow):
             edit.moveCursor(QTextCursor.MoveOperation.End)
         else:
             notes_entry.setFocus()
-            notes_entry.selectAll()
+            notes_entry.setCursorPosition(len(notes_entry.text()))
 
         edit._notes_entry = notes_entry
 
