@@ -401,6 +401,7 @@ class MainWindow(QMainWindow):
                     padding: 0px;
                 }
             ''')
+        notes_entry.returnPressed.connect(lambda: finish(True))
 
         # -- Height Adjustment ---
         fm = QFontMetrics(edit.font())
@@ -414,8 +415,6 @@ class MainWindow(QMainWindow):
             doc.setTextWidth(edit.viewport().width())
             doc_height = int(doc.size().height())
             edit.setFixedHeight(doc_height + 0)
-            # edit.setFocus()
-            # edit.moveCursor(QTextCursor.MoveOperation.End)
 
         edit.document().contentsChanged.connect(adjust_height)
         QTimer.singleShot(0, adjust_height)
@@ -500,6 +499,7 @@ class MainWindow(QMainWindow):
                         notes_text.hide()
 
             self._current_edit_finish = None
+            self.task_input.clearFocus()
 
             if not skip_refresh:
                 self.refresh_tasks()
