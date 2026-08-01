@@ -250,8 +250,8 @@ class MainWindow(QMainWindow):
             title_label.setStyleSheet("color: black; font-size: 15px;")
             title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             title_label.setWordWrap(True)
-            
-            if self.current_tab == "acitve":
+
+            if self.current_tab == "active":
                 def make_press_handler(lbl, tid, t):
                     def handler(event):
                         if event.button() == Qt.MouseButton.LeftButton:
@@ -405,7 +405,7 @@ class MainWindow(QMainWindow):
             doc = edit.document()
             doc.setTextWidth(edit.viewport().width())
             doc_height = int(doc.size().height())
-            edit.setFixedHeight(doc_height + 6)
+            edit.setFixedHeight(doc_height + 0)
             edit.setFocus()
             edit.moveCursor(QTextCursor.MoveOperation.End)
 
