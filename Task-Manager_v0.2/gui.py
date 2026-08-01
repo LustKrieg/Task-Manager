@@ -272,6 +272,14 @@ class MainWindow(QMainWindow):
 
                 title_label._notes_text = notes_text
 
+                if self.current_tab == "active":
+                    def make_note_handler(lbl, tid, t):
+                        def handler(event):
+                            if event.button() == Qt.MouseButton.LeftButton:
+                                QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t, focus_on="notes"))
+                        return handler
+                    notes_text.mousePressEvent = make_note_handler(title_label, task.id, task.title)
+
             left_layout.addWidget(title_label)
             if notes_text:
                 left_layout.addWidget(notes_text)
@@ -335,7 +343,7 @@ class MainWindow(QMainWindow):
         timer.start(1500)
         self.pending_timers[task_id] = timer
 
-    def start_editing(self, title_label, task_id, current_title):
+    def start_editing(self, title_label, task_id, current_title, focus_on="title"):
         self.close_current_edit(True, skip_refresh=True)
 
         if sip.isdeleted(title_label):
@@ -406,8 +414,8 @@ class MainWindow(QMainWindow):
             doc.setTextWidth(edit.viewport().width())
             doc_height = int(doc.size().height())
             edit.setFixedHeight(doc_height + 0)
-            edit.setFocus()
-            edit.moveCursor(QTextCursor.MoveOperation.End)
+            # edit.setFocus()
+            # edit.moveCursor(QTextCursor.MoveOperation.End)
 
         edit.document().contentsChanged.connect(adjust_height)
         QTimer.singleShot(0, adjust_height)
@@ -423,8 +431,14 @@ class MainWindow(QMainWindow):
         left_layout.insertWidget(0, edit)
         left_layout.insertWidget(1, notes_entry)
 
-        edit.setFocus()
-        edit.moveCursor(QTextCursor.MoveOperation.End)
+        # --- Set focus based on clicked field ---
+        if focus_on == "title":
+            edit.setFocus()
+            edit.moveCursor(QTextCursor.MoveOperation.End)
+        else:
+            notes_entry.setFocus()
+            notes_entry.selectAll()
+
         edit._notes_entry = notes_entry
 
         def finish(save=True, skip_refresh=False):
