@@ -262,29 +262,20 @@ class MainWindow(QMainWindow):
             date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
 
             # --- Notes ---
-            notes_label = None
             notes_text = None
             if task.notes and task.notes.strip():
-                notes_label = QLabel("Notes")
-                notes_label.setStyleSheet(''' color: #8E8E93; font-size: 11px; font-weight: 500; ''')
-                notes_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
                 notes_text = QLabel(task.notes)
                 notes_text.setStyleSheet(''' color: #8E8E93; font-size: 12px; ''')
                 notes_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
                 notes_text.setWordWrap(True)
 
-                notes_label._notes_text = notes_text
-                notes_text._notes_label = notes_label
-
-                title_label._notes_label = notes_label
                 title_label._notes_text = notes_text
 
             left_layout.addWidget(title_label)
-            left_layout.addWidget(date_label)
-            if notes_label:
-                left_layout.addWidget(notes_label)
+            if notes_text:
                 left_layout.addWidget(notes_text)
+            left_layout.addWidget(date_label)
 
             row_layout.addWidget(left_column)
             row_layout.setStretchFactor(left_column, 1)
@@ -403,6 +394,15 @@ class MainWindow(QMainWindow):
                 }
             ''')
 
+        # --- Notes Label ---
+        notes_label_edit = QLabel("Notes")
+        notes_label_edit.setStyleSheet('''
+            color: #8E8E93;
+            font-size: 11px;
+            font-weight: normal;
+        ''')
+        notes_label_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
         # -- Height Adjustment ---
         fm = QFontMetrics(edit.font())
         line_height = fm.lineSpacing()
@@ -422,8 +422,18 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(0, adjust_height)
 
         title_label.hide()
+
+        # Hide static notes if it exists
+        if hasattr(title_label, '_notes_text'):
+            notes_text = title_label._notes_text
+            if notes_text and not sip.isdeleted(notes_text):
+                notes_text.hide()
+
         left_layout.insertWidget(0, edit)
-        left_layout.insertWidget(1, notes_entry)
+        left_layout.insertWidget(1, notes_label_edit)
+        left_layout.insertWidget(2, notes_entry)
+
+        edit._notes_label_edit = notes_label_edit
 
         edit.setFocus()
         edit.moveCursor(QTextCursor.MoveOperation.End)
@@ -457,6 +467,21 @@ class MainWindow(QMainWindow):
                 edit.setParent(None)
                 edit.deleteLater()
 
+            if hasattr(edit, '_notes_entry') and edit._notes_entry:
+                notes_entry = edit._notes_entry
+                if not sip.isdeleted(notes_entry):
+                    left_layout.removeWidget(notes_entry)
+                    notes_entry.setParent(None)
+                    notes_entry.deleteLater()
+
+            if hasattr(edit, '_notes_label_edit') and edit._notes_label_edit:
+                notes_label_edit = edit._notes_label_edit
+                if not sip.isdeleted(notes_label_edit):
+                    left_layout.removeWidget(notes_label_edit)
+                    notes_label_edit.setParent(None)
+                    notes_label_edit.deleteLater()
+
+
             try:
                 left_layout.addStretch()
                 left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -471,22 +496,14 @@ class MainWindow(QMainWindow):
                 title_label.show()
 
             # Restore Notes Label
-            if hasattr(title_label, '_notes_label'):
-                notes_label = title_label._notes_label
-                if notes_label and not sip.isdeleted(notes_label):
+            if hasattr(title_label, '_notes_text'):
+                notes_text = title_label._notes_text
+                if notes_text and not sip.isdeleted(notes_text):
                     if new_notes and new_notes.strip():
-                        notes_label.show()
-                        if hasattr(notes_label, '_notes_text'):
-                            notes_text = notes_label._notes_text
-                            if notes_text and not sip.isdeleted(notes_text):
-                                notes_text.setText(new_notes)
-                                notes_text.show()
+                        notes_text.setText(new_notes)
+                        notes_text.show()
                     else:
-                        notes_label.hide()
-                        if hasattr(notes_label, '_notes_text'):
-                            notes_text = notes_label._notes_text
-                            if notes_text and not sip.isdeleted(notes_text):
-                                notes_text.hide()
+                        notes_text.hide()
 
             self._current_edit_finish = None
 
