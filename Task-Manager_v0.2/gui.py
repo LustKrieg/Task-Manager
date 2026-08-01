@@ -261,8 +261,30 @@ class MainWindow(QMainWindow):
             date_label = QLabel(task.created_at.strftime('%b %d, %I:%M %p'))
             date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
 
+            # --- Notes ---
+            notes_label = None
+            notes_text = None
+            if task.notes and task.notes.strip():
+                notes_label = QLabel("Notes")
+                notes_label.setStyleSheet(''' color: #8E8E93; font-size: 11px; font-weight: 500; ''')
+                notes_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+                notes_text = QLabel(task.notes)
+                notes_text.setStyleSheet(''' color: #8E8E93; font-size: 12px; ''')
+                notes_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                notes_text.setWordWrap(True)
+
+                notes_label._notes_text = notes_text
+                notes_text._notes_label = notes_label
+
+                title_label._notes_label = notes_label
+                title_label._notes_text = notes_text
+
             left_layout.addWidget(title_label)
             left_layout.addWidget(date_label)
+            if notes_label:
+                left_layout.addWidget(notes_label)
+                left_layout.addWidget(notes_text)
 
             row_layout.addWidget(left_column)
             row_layout.setStretchFactor(left_column, 1)
@@ -334,6 +356,7 @@ class MainWindow(QMainWindow):
         left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         left_layout.setSpacing(0)
 
+        # --- Title Entry ---
         edit = QTextEdit()
         edit.setPlainText(current_title)
         edit.document().setDocumentMargin(0)
@@ -350,6 +373,37 @@ class MainWindow(QMainWindow):
         edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         edit.document().setDocumentMargin(0)
 
+        # --- Notes entry ---
+        notes_entry = QLineEdit()
+        notes_entry.setPlaceholderText("Notes")
+        notes_entry.setStyleSheet('''
+            QLineEdit {
+                border: none;
+                background: white;
+                color: #8E8E93;
+                font-size: 12px;
+                padding: 0px;
+            }
+        ''')
+        notes_entry.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        notes_entry.setFixedHeight(22)
+
+        current_notes = self.service.get_notes(task_id)
+        if current_notes and current_notes.strip():
+            notes_entry.setText(current_notes)
+        else:
+            notes_entry.setPlaceholderText("Notes")
+            notes_entry.setStyleSheet('''
+                QLineEdit {
+                    border: none;
+                    background: white;
+                    color: #8E8E93;
+                    font-size: 12px;
+                    padding: 0px;
+                }
+            ''')
+
+        # -- Height Adjustment ---
         fm = QFontMetrics(edit.font())
         line_height = fm.lineSpacing()
 
@@ -369,29 +423,36 @@ class MainWindow(QMainWindow):
 
         title_label.hide()
         left_layout.insertWidget(0, edit)
+        left_layout.insertWidget(1, notes_entry)
 
         edit.setFocus()
         edit.moveCursor(QTextCursor.MoveOperation.End)
+        edit._notes_entry = notes_entry
 
         def finish(save=True, skip_refresh=False):
-            if not sip.isdeleted(edit):
-                try:
-                    edit.document().contentsChanged.disconnect(adjust_height)
-                except TypeError:
-                    pass
-
             try:
                 new_title = edit.toPlainText().strip()
             except RuntimeError:
                 new_title = None
+
+            try:
+                new_notes = edit._notes_entry.text().strip()
+            except (RuntimeError, AttributeError):
+                new_notes = None
 
             if save and new_title is not None:
                 if new_title and new_title != current_title:
                     self.service.update_task_title(task_id, new_title)
                     if not sip.isdeleted(title_label):
                         title_label.setText(new_title)
+                if new_notes is not None:
+                    self.service.update_notes(task_id, new_notes)
 
             if not sip.isdeleted(edit):
+                try:
+                    edit.document().contentsChanged.disconnect(adjust_height)
+                except TypeError:
+                    pass
                 left_layout.removeWidget(edit)
                 edit.setParent(None)
                 edit.deleteLater()
@@ -405,7 +466,27 @@ class MainWindow(QMainWindow):
                 pass
 
             if not sip.isdeleted(title_label):
+                if new_title is not None:
+                    title_label.setText(new_title)
                 title_label.show()
+
+            # Restore Notes Label
+            if hasattr(title_label, '_notes_label'):
+                notes_label = title_label._notes_label
+                if notes_label and not sip.isdeleted(notes_label):
+                    if new_notes and new_notes.strip():
+                        notes_label.show()
+                        if hasattr(notes_label, '_notes_text'):
+                            notes_text = notes_label._notes_text
+                            if notes_text and not sip.isdeleted(notes_text):
+                                notes_text.setText(new_notes)
+                                notes_text.show()
+                    else:
+                        notes_label.hide()
+                        if hasattr(notes_label, '_notes_text'):
+                            notes_text = notes_label._notes_text
+                            if notes_text and not sip.isdeleted(notes_text):
+                                notes_text.hide()
 
             self._current_edit_finish = None
 
@@ -428,7 +509,7 @@ class MainWindow(QMainWindow):
     def restore_task(self, task_id: int):
         self.service.restore_task(task_id)
         self.refresh_tasks()
-        
+
     def restore_all_tasks(self):
         self.service.restore_all()
         self.refresh_tasks()

@@ -144,4 +144,11 @@ class TaskDatabase:
             WHERE deleted = 1
             ''')
 
-    
+    def get_notes(self, task_id: int) -> str:
+        with self._connect() as conn:
+            result = conn.execute('''
+            SELECT notes
+            FROM tasks
+            WHERE id = ?
+            ''', (task_id,)).fetchone()
+            return result[0] if result and result[0] else ""

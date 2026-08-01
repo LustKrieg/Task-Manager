@@ -42,9 +42,12 @@ class TaskService:
         if not new_title.strip():
             return
         self.db.update_task_title(task_id, new_title.strip())
-        
+
     def restore_all(self) -> None:
         self.db.restore_all()
+
+    def get_notes(self, task_id: int) -> str:
+        return self.db.get_notes(task_id)
 
 if __name__ == "__main__":
     db = TaskDatabase()
