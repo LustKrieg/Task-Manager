@@ -373,10 +373,10 @@ class MainWindow(QMainWindow):
         edit.document().setDocumentMargin(0)
 
         # --- Notes entry ---
-        notes_entry = QLineEdit()
+        notes_entry = QTextEdit()
         notes_entry.setPlaceholderText("Notes")
         notes_entry.setStyleSheet('''
-            QLineEdit {
+            QTextEdit {
                 border: none;
                 background: white;
                 color: #8E8E93;
@@ -385,23 +385,26 @@ class MainWindow(QMainWindow):
             }
         ''')
         notes_entry.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        notes_entry.setFixedHeight(22)
+        notes_entry.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        notes_entry.document().setDocumentMargin(0)
+
+        fm_notes = QFontMetrics(notes_entry.font())
+        notes_line_height = fm_notes.lineSpacing()
+
+        def adjust_notes_height():
+            if sip.isdeleted(notes_entry):
+                return
+            doc = notes_entry.document()
+            doc.setTextWidth(notes_entry.viewport().width())
+            doc_height = int(doc.size().height())
+            notes_entry.setFixedHeight(max(notes_line_height + 4, doc_height))
+
+        notes_entry.document().contentsChanged.connect(adjust_notes_height)
+        QTimer.singleShot(0, adjust_notes_height)
 
         current_notes = self.service.get_notes(task_id)
         if current_notes and current_notes.strip():
-            notes_entry.setText(current_notes)
-        else:
-            notes_entry.setPlaceholderText("Notes")
-            notes_entry.setStyleSheet('''
-                QLineEdit {
-                    border: none;
-                    background: white;
-                    color: #8E8E93;
-                    font-size: 12px;
-                    padding: 0px;
-                }
-            ''')
-        notes_entry.returnPressed.connect(lambda: finish(True))
+            notes_entry.setPlainText(current_notes)
 
         # -- Height Adjustment ---
         fm = QFontMetrics(edit.font())
@@ -436,7 +439,7 @@ class MainWindow(QMainWindow):
             edit.moveCursor(QTextCursor.MoveOperation.End)
         else:
             notes_entry.setFocus()
-            notes_entry.setCursorPosition(len(notes_entry.text()))
+            notes_entry.moveCursor(QTextCursor.MoveOperation.End)
 
         edit._notes_entry = notes_entry
 
@@ -447,7 +450,7 @@ class MainWindow(QMainWindow):
                 new_title = None
 
             try:
-                new_notes = edit._notes_entry.text().strip()
+                new_notes = edit._notes_entry.toPlainText().strip()
             except (RuntimeError, AttributeError):
                 new_notes = None
 
@@ -471,6 +474,10 @@ class MainWindow(QMainWindow):
             if hasattr(edit, '_notes_entry') and edit._notes_entry:
                 notes_entry = edit._notes_entry
                 if not sip.isdeleted(notes_entry):
+                    try:
+                        notes_entry.document().contentsChanged.disconnect(adjust_notes_height)
+                    except TypeError:
+                        pass
                     left_layout.removeWidget(notes_entry)
                     notes_entry.setParent(None)
                     notes_entry.deleteLater()
@@ -505,6 +512,10 @@ class MainWindow(QMainWindow):
                 self.refresh_tasks()
 
         self._current_edit_finish = finish
+
+        notes_filter = NotesEnterFilter(notes_entry, finish)
+        notes_entry.installEventFilter(notes_filter)
+        notes_entry._entry_filter = notes_filter
 
         QShortcut(QKeySequence("Ctrl+Return"), edit).activated.connect(lambda: finish(True))
         QShortcut(QKeySequence("Escape"), edit).activated.connect(lambda: finish(True))
@@ -574,6 +585,22 @@ class EnterFilter(QObject):
         if event.type() == QEvent.Type.KeyPress:
             key = event.key()
             if key == Qt.Key.Key_Return or key == Qt.Key.Key_Enter:
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                    return False
+                self.finish(True)
+                return True
+        return False
+
+class NotesEnterFilter(QObject):
+    def __init__(self, notes_widget, finish_func):
+        super().__init__()
+        self.notes = notes_widget
+        self.finish = finish_func
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
                     return False
                 self.finish(True)
