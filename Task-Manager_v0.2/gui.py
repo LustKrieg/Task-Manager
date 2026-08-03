@@ -96,6 +96,35 @@ class MainWindow(QMainWindow):
         self.title_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         content_layout.addWidget(self.title_label)
 
+        # --- Top Bar: Add "+" Button
+        top_bar = QHBoxLayout()
+        top_bar.setContentsMargins(0, 0, 0, 0)
+        top_bar.setSpacing(10)
+
+        add_btn = QPushButton("+")
+        add_btn.setFixedSize(30, 30)
+        add_btn.setStyleSheet('''
+            QPushButton {
+                border: 2px solid #8E8E93;
+                border-radius: 8px;
+                background: transparent;
+                color: #8E8E93;
+                font-size: 20px;
+                font-weight: 300;
+            }
+            QPushButton:hover {
+                background: #E5E5EA;
+                border-color: #3A3A3C;
+                color: black;
+            }
+        ''')
+        add_btn.clicked.connect(self.add_task_from_button)
+        top_bar.addWidget(self.title_label)
+        top_bar.addStretch()
+        top_bar.addWidget(add_btn)
+
+        content_layout.addLayout(top_bar)
+
         # --- Add Task Row ---
         self.task_input = QLineEdit()
         self.task_input.setPlaceholderText("New Reminder")
@@ -550,6 +579,10 @@ class MainWindow(QMainWindow):
     def empty_trash(self):
         self.service.empty_trash()
         self.refresh_tasks()
+
+    def add_task_from_button(self):
+        self.task_input.setFocus()
+        self.task_input.selectAll()
 
     def show_context_menu(self, pos, task_id):
         menu = QMenu()
