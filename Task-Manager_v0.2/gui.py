@@ -9,6 +9,7 @@ from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QFontMetrics, QTextCurso
 from database import TaskDatabase
 from service import TaskService
 from PyQt6 import sip
+from datetime import date
 
 class MainWindow(QMainWindow):
     def __init__(self, service: TaskService):
@@ -18,6 +19,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Task Manager")
         self.setGeometry(100, 100, 750, 500)
         self.pending_timers = {}
+        self.search_text = ""
 
         # --- Central Widget ---
         central = QWidget()
@@ -124,6 +126,25 @@ class MainWindow(QMainWindow):
         top_bar.addWidget(add_btn)
 
         content_layout.addLayout(top_bar)
+
+        # --- Search Bar ---
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("🔍 Search")
+        self.search_input.setStyleSheet('''
+            QLineEdit {
+                border: 1px solid #D1D1D6;
+                border-radius: 8px;
+                background: white;
+                color: black;
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #007AFF;
+            }
+        ''')
+        self.search_input.textChanged.connect(self.on_search_changed)
+        content_layout.addWidget(self.search_input)
 
         # --- Add Task Row ---
         self.task_input = QLineEdit()
@@ -234,6 +255,12 @@ class MainWindow(QMainWindow):
         else:
             tasks = self.service.get_deleted_tasks()
 
+        if self.search_text:
+            tasks = [
+                t for t in tasks
+                if self.search_text in t.title.lower()
+                or self.search_text in t.notes.lower()
+            ]
         for task in tasks:
             row = QWidget()
             row.setObjectName("taskRow")
@@ -583,6 +610,10 @@ class MainWindow(QMainWindow):
     def add_task_from_button(self):
         self.task_input.setFocus()
         self.task_input.selectAll()
+
+    def on_search_changed(self, text):
+        self.search_text = text.strip().lower()
+        self.refresh_tasks()
 
     def show_context_menu(self, pos, task_id):
         menu = QMenu()
