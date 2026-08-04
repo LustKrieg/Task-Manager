@@ -249,6 +249,7 @@ class MainWindow(QMainWindow):
             if widget:
                 widget.deleteLater()
 
+        # --- Curcle Button ---
         if self.current_tab == "active":
             tasks = self.service.get_active_tasks()
         elif self.current_tab == "completed":
@@ -272,22 +273,42 @@ class MainWindow(QMainWindow):
             row.customContextMenuRequested.connect(lambda pos, tid=task.id: self.show_context_menu(pos, tid))
             row_layout.setContentsMargins(0, 0, 0, 0)
 
-            circle = QPushButton("○" if not task.completed else "◉")
+            # Circle color logic
+            if self.current_tab == "active":
+                circle_text = "○"
+                circle_color = "#8E8E93"
+            elif self.current_tab == "completed":
+                circle_text = "◉"
+                circle_color = "#E30000"
+            else:
+                if task.completed:
+                    circle_text = "◉"
+                    circle_color = "#E30000"
+                else:
+                    circle_text = "○"
+                    circle_color = "#8E8E93"
+
+            if not task.completed:
+                hover_color = "#E30000"
+            else:
+                hover_color = "#8E8E93"
+
+            circle = QPushButton(circle_text)
             circle.setFixedSize(30, 30)
-            circle.setStyleSheet("""
-                QPushButton {
+            circle.setStyleSheet(f"""
+                QPushButton {{
                     border: none;
                     background: transparent;
-                    color: #8E8E93;
+                    color: {circle_color};
                     font-size: 22px;
                     font-weight: 300;
-                }
-                QPushButton:hover {
+                }}
+                QPushButton:hover {{
+                    color: {hover_color};
+                }}
+                QPushButton:pressed {{
                     color: #E30000;
-                }
-                QPushButton:pressed {
-                    color: #E30000;
-                }
+                }}
             """)
 
             if self.current_tab == "active" and not task.completed:
