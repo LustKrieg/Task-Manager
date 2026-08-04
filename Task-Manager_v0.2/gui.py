@@ -5,7 +5,8 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFrame, QSizePolicy, QTextEdit, QSpacerItem, QMenu
 )
 from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
-from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QFontMetrics, QTextCursor, QPainter, QColor
+from PyQt6.QtGui import (QFont, QShortcut, QKeySequence, QFontMetrics,
+    QTextCursor, QPainter, QColor, QPixmap, QIcon, QAction)
 from database import TaskDatabase
 from service import TaskService
 from PyQt6 import sip
@@ -40,6 +41,25 @@ class MainWindow(QMainWindow):
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         sidebar_layout.setContentsMargins(8, 20, 8, 20)
+
+        # --- Search Bar ---
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("🔍 Search")
+        self.search_input.setStyleSheet('''
+            QLineEdit {
+                border: 1px solid #D1D1D6;
+                border-radius: 8px;
+                background: white;
+                color: black;
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #007AFF;
+            }
+        ''')
+        self.search_input.textChanged.connect(self.on_search_changed)
+        sidebar_layout.addWidget(self.search_input)
 
         # --- Tab buttons ---
         self.active_tab = QPushButton("Active")
@@ -126,25 +146,6 @@ class MainWindow(QMainWindow):
         top_bar.addWidget(add_btn)
 
         content_layout.addLayout(top_bar)
-
-        # --- Search Bar ---
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("🔍 Search")
-        self.search_input.setStyleSheet('''
-            QLineEdit {
-                border: 1px solid #D1D1D6;
-                border-radius: 8px;
-                background: white;
-                color: black;
-                font-size: 13px;
-                padding: 6px 10px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #007AFF;
-            }
-        ''')
-        self.search_input.textChanged.connect(self.on_search_changed)
-        content_layout.addWidget(self.search_input)
 
         # --- Add Task Row ---
         self.task_input = QLineEdit()
