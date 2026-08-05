@@ -11,6 +11,7 @@ from database import TaskDatabase
 from service import TaskService
 from PyQt6 import sip
 from datetime import date
+from styles import SIDEBAR_BUTTON_STYLE
 
 class MainWindow(QMainWindow):
     def __init__(self, service: TaskService):
@@ -69,30 +70,7 @@ class MainWindow(QMainWindow):
         # Styling Bar Tabs
         for tab in (self.active_tab, self.completed_tab, self.trash_tab):
             tab.setFlat(True)
-            tab.setStyleSheet('''
-                QPushButton{
-                border: none;
-                padding: 10px 14px;
-                font-size: 14px;
-                font=weight: 500;
-                color: #8E8E93;
-                background: transparent;
-                text-align: left;
-                border-radius: 8px;
-                margin: 2px 0px;
-                }
-                QPushButton:hover {
-                background: #E5E5EA;
-                }
-                QPushButton:pressed {
-                    background: #D1D1D6;
-                }
-                QPushButton[active="true"] {
-                    background: #D1D1D6;
-                    color: black;
-                    font-weight: 600;
-                }
-            ''')
+            tab.setStyleSheet(SIDEBAR_BUTTON_STYLE)
 
         self.active_tab.setProperty("active", True)
         self.active_tab.style().polish(self.active_tab)
