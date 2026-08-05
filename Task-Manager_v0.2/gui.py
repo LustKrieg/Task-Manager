@@ -324,6 +324,7 @@ class MainWindow(QMainWindow):
             left_layout.setContentsMargins(0, 0, 0, 0)
             left_layout.setSpacing(2)
 
+            # --- Title Label ---
             title_label = QLabel(task.title)
             title_label.setStyleSheet("color: black; font-size: 15px;")
             title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
