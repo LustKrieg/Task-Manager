@@ -15,6 +15,7 @@ from PyQt6 import sip
 from datetime import date
 from styles import SIDEBAR_BUTTON_STYLE
 from sidebar import Sidebar
+from task_row import TaskRow
 
 
 class MainWindow(QMainWindow):
@@ -205,14 +206,10 @@ class MainWindow(QMainWindow):
                 or self.search_text in t.notes.lower()
             ]
         for task in tasks:
-            row = QWidget()
-            row.setObjectName("taskRow")
-            row.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            row_layout = QHBoxLayout()
-            row.setLayout(row_layout)
+            row = TaskRow(task, self.current_tab)
+            row_layout = row.row_layout
             row.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             row.customContextMenuRequested.connect(lambda pos, tid=task.id: self.show_context_menu(pos, tid))
-            row_layout.setContentsMargins(0, 0, 0, 0)
 
             # Circle color logic
             if self.current_tab == "active":
