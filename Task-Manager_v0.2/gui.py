@@ -10,8 +10,12 @@ from PyQt6.QtGui import (QFont, QShortcut, QKeySequence, QFontMetrics,
 from database import TaskDatabase
 from service import TaskService
 from PyQt6 import sip
+
+# From other files
 from datetime import date
 from styles import SIDEBAR_BUTTON_STYLE
+from sidebar import Sidebar
+
 
 class MainWindow(QMainWindow):
     def __init__(self, service: TaskService):
@@ -30,59 +34,18 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # --- Sidebar ---
-        sidebar = QWidget()
-        sidebar.setFixedWidth(200)
-        sidebar.setStyleSheet('''
-            QWidget {
-            background: #F5F5F7;
-            border-right: 1px solid #E5E5EA;
-            }
-        ''')
-        sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        sidebar_layout.setContentsMargins(8, 20, 8, 20)
+        self.sidebar = Sidebar()
+        self.search_input = self.sidebar.search_input
+        self.active_tab = self.sidebar.active_tab
+        self.completed_tab = self.sidebar.completed_tab
+        self.trash_tab = self.sidebar.trash_tab
 
-        # --- Search Bar ---
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("🔍 Search")
-        self.search_input.setStyleSheet('''
-            QLineEdit {
-                border: 1px solid #D1D1D6;
-                border-radius: 8px;
-                background: white;
-                color: black;
-                font-size: 13px;
-                padding: 6px 10px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #007AFF;
-            }
-        ''')
         self.search_input.textChanged.connect(self.on_search_changed)
-        sidebar_layout.addWidget(self.search_input)
 
-        # --- Tab buttons ---
-        self.active_tab = QPushButton("Active")
-        self.completed_tab = QPushButton("Completed")
-        self.trash_tab = QPushButton("Recently Deleted")
-
-        # Styling Bar Tabs
-        for tab in (self.active_tab, self.completed_tab, self.trash_tab):
-            tab.setFlat(True)
-            tab.setStyleSheet(SIDEBAR_BUTTON_STYLE)
-
-        self.active_tab.setProperty("active", True)
-        self.active_tab.style().polish(self.active_tab)
-        
         self.active_tab.clicked.connect(lambda: self.switch_tab("active"))
         self.completed_tab.clicked.connect(lambda: self.switch_tab("completed"))
         self.trash_tab.clicked.connect(lambda: self.switch_tab("trash"))
 
-        sidebar_layout.addWidget(self.active_tab)
-        sidebar_layout.addWidget(self.completed_tab)
-        sidebar_layout.addWidget(self.trash_tab)
-        sidebar_layout.addStretch()
 
         # --- CONTENT (Right) ---
         content = QWidget()
@@ -185,7 +148,7 @@ class MainWindow(QMainWindow):
         content_layout.addWidget(scroll)
 
         # --- Add sidebar and content to main layout ---
-        main_layout.addWidget(sidebar)
+        main_layout.addWidget(self.sidebar)
         main_layout.addWidget(content)
         main_layout.setStretchFactor(content, 1)
 

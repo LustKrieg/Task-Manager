@@ -1,0 +1,59 @@
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit
+from styles import SIDEBAR_BUTTON_STYLE
+
+
+class Sidebar(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setFixedWidth(200)
+        self.setStyleSheet("""
+            QWidget {
+                background: #F5F5F7;
+                border-right: 1px solid #E5E5EA;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 20, 8, 20)
+        layout.setSpacing(0)
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("🔍 Search")
+        self.search_input.setStyleSheet("""
+            QLineEdit {
+                border: 1px solid #D1D1D6;
+                border-radius: 8px;
+                background: white;
+                color: black;
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+
+            QLineEdit:focus {
+                border: 1px solid #007AFF;
+            }
+        """)
+
+        layout.addWidget(self.search_input)
+
+        self.active_tab = QPushButton("Active")
+        self.completed_tab = QPushButton("Completed")
+        self.trash_tab = QPushButton("Recently Deleted")
+
+        for button in (
+            self.active_tab,
+            self.completed_tab,
+            self.trash_tab,
+        ):
+            button.setFlat(True)
+            button.setStyleSheet(SIDEBAR_BUTTON_STYLE)
+
+        self.active_tab.setProperty("active", True)
+        self.active_tab.style().polish(self.active_tab)
+
+        layout.addWidget(self.active_tab)
+        layout.addWidget(self.completed_tab)
+        layout.addWidget(self.trash_tab)
+
+        layout.addStretch()
