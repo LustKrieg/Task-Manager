@@ -205,71 +205,19 @@ class MainWindow(QMainWindow):
                 if self.search_text in t.title.lower()
                 or self.search_text in t.notes.lower()
             ]
+
         for task in tasks:
-            row = TaskRow(task, self.current_tab)
-            row_layout = row.row_layout
+            row = TaskRow(task, self.current_tab, self)
             circle = row.circle
             row.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             row.customContextMenuRequested.connect(lambda pos, tid=task.id: self.show_context_menu(pos, tid))
 
             # Circle color logic
-
             if self.current_tab == "active" and not task.completed:
                 circle.clicked.connect(lambda checked, tid=task.id, btn=circle: self.handle_circle_click(tid, btn))
 
             elif self.current_tab == "completed" and task.completed:
                 circle.clicked.connect(lambda checked, tid=task.id: self.undo_task(tid))
-
-            # Left side: Title + Date (Vertical)
-            left_column = QWidget()
-            left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            left_layout = QVBoxLayout(left_column)
-            left_layout.setContentsMargins(0, 0, 0, 0)
-            left_layout.setSpacing(2)
-
-            # --- Title Label ---
-            title_label = QLabel(task.title)
-            title_label.setStyleSheet("color: black; font-size: 15px;")
-            title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            title_label.setWordWrap(True)
-
-            if self.current_tab == "active":
-                def make_press_handler(lbl, tid, t):
-                    def handler(event):
-                        if event.button() == Qt.MouseButton.LeftButton:
-                            QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t))
-                    return handler
-                title_label.mousePressEvent = make_press_handler(title_label, task.id, task.title)
-            
-            date_label = QLabel(task.created_at.strftime('%b %d, %I:%M %p'))
-            date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
-
-            # --- Notes ---
-            notes_text = None
-            if task.notes and task.notes.strip():
-                notes_text = QLabel(task.notes)
-                notes_text.setStyleSheet(''' color: #8E8E93; font-size: 12px; ''')
-                notes_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-                notes_text.setWordWrap(True)
-
-                title_label._notes_text = notes_text
-
-                if self.current_tab == "active":
-                    def make_note_handler(lbl, tid, t):
-                        def handler(event):
-                            if event.button() == Qt.MouseButton.LeftButton:
-                                QTimer.singleShot(0, lambda: self.start_editing(lbl, tid, t, focus_on="notes"))
-                        return handler
-                    notes_text.mousePressEvent = make_note_handler(title_label, task.id, task.title)
-
-            left_layout.addWidget(title_label)
-            if notes_text:
-                left_layout.addWidget(notes_text)
-            left_layout.addWidget(date_label)
-
-            row_layout.addWidget(left_column)
-            row_layout.setStretchFactor(left_column, 1)
-            row_layout.addWidget(circle)
 
             self.task_layout.addWidget(row)
 
