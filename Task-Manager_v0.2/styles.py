@@ -3,7 +3,7 @@ SIDEBAR_BUTTON_STYLE = ('''
     border: none;
     padding: 10px 14px;
     font-size: 14px;
-    font=weight: 500;
+    font-weight: 500;
     color: #8E8E93;
     background: transparent;
     text-align: left;

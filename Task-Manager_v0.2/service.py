@@ -43,6 +43,9 @@ class TaskService:
             return
         self.db.update_task_title(task_id, new_title.strip())
 
+    def empty_trash(self):
+        self.db.empty_trash()
+
     def restore_all(self) -> None:
         self.db.restore_all()
 

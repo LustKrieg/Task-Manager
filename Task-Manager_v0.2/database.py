@@ -120,6 +120,13 @@ class TaskDatabase:
             WHERE id = ?
             ''', (task_id,))
 
+    def empty_trash(self) -> None:
+        with self._connect() as conn:
+            conn.execute('''
+            DELETE FROM tasks
+            WHERE deleted = 1
+            ''')
+
     def update_notes(self, task_id: int, notes: str) -> None:
         with self._connect() as conn:
             conn.execute('''
