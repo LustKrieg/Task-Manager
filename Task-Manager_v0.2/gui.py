@@ -340,17 +340,17 @@ class MainWindow(QMainWindow):
         fm = QFontMetrics(edit.font())
         line_height = fm.lineSpacing()
 
-        def adjust_height():
+        def adjust_title_height():
             if sip.isdeleted(edit):
                 return
 
             doc = edit.document()
             doc.setTextWidth(edit.viewport().width())
             doc_height = int(doc.size().height())
-            edit.setFixedHeight(doc_height + 0)
 
-        edit.document().contentsChanged.connect(adjust_height)
-        QTimer.singleShot(0, adjust_height)
+            edit.setFixedHeight(max(line_height + 4, doc_height))
+
+        edit.document().contentsChanged.connect(adjust_title_height)
 
         title_label.hide()
 
@@ -362,6 +362,7 @@ class MainWindow(QMainWindow):
 
         left_layout.insertWidget(0, edit)
         left_layout.insertWidget(1, notes_entry)
+        QTimer.singleShot(0, adjust_title_height)
 
         # --- Set focus based on clicked field ---
         if focus_on == "title":
@@ -394,7 +395,7 @@ class MainWindow(QMainWindow):
 
             if not sip.isdeleted(edit):
                 try:
-                    edit.document().contentsChanged.disconnect(adjust_height)
+                    edit.document().contentsChanged.disconnect(adjust_title_height)
                 except TypeError:
                     pass
                 left_layout.removeWidget(edit)
