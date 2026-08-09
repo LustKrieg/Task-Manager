@@ -2,14 +2,12 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QScrollArea, QFrame, QSizePolicy, QTextEdit, QSpacerItem, QMenu
+    QScrollArea,QMenu
 )
-from PyQt6.QtCore import Qt, QEvent, QObject, QTimer
-from PyQt6.QtGui import (QFont, QShortcut, QKeySequence, QFontMetrics,
-    QTextCursor, QPainter, QColor, QPixmap, QIcon, QAction)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from database import TaskDatabase
 from service import TaskService
-from PyQt6 import sip
 
 # From other files
 from datetime import date
