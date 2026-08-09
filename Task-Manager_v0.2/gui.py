@@ -318,6 +318,7 @@ class MainWindow(QMainWindow):
         notes_entry.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         notes_entry.document().setDocumentMargin(0)
 
+        # --- Notes Height ---
         fm_notes = QFontMetrics(notes_entry.font())
         notes_line_height = fm_notes.lineSpacing()
 
@@ -332,11 +333,12 @@ class MainWindow(QMainWindow):
         notes_entry.document().contentsChanged.connect(adjust_notes_height)
         QTimer.singleShot(0, adjust_notes_height)
 
+        # --- Load Existing Notes ---
         current_notes = self.service.get_notes(task_id)
         if current_notes and current_notes.strip():
             notes_entry.setPlainText(current_notes)
 
-        # -- Height Adjustment ---
+        # --- Title Height ---
         fm = QFontMetrics(edit.font())
         line_height = fm.lineSpacing()
 
@@ -354,12 +356,13 @@ class MainWindow(QMainWindow):
 
         title_label.hide()
 
-        # Hide static notes if it exists
+        # --- Hide Static Labels ---
         if hasattr(title_label, '_notes_text'):
             notes_text = title_label._notes_text
             if notes_text and not sip.isdeleted(notes_text):
                 notes_text.hide()
 
+        # --- Add Editors ---
         left_layout.insertWidget(0, edit)
         left_layout.insertWidget(1, notes_entry)
         QTimer.singleShot(0, adjust_title_height)
@@ -374,6 +377,7 @@ class MainWindow(QMainWindow):
 
         edit._notes_entry = notes_entry
 
+        # --- SAVE / FNINISH ---
         def finish(save=True, skip_refresh=False):
             try:
                 new_title = edit.toPlainText().strip()
@@ -393,6 +397,7 @@ class MainWindow(QMainWindow):
                 if new_notes is not None:
                     self.service.update_notes(task_id, new_notes)
 
+            # --- Remove Title Editor ---
             if not sip.isdeleted(edit):
                 try:
                     edit.document().contentsChanged.disconnect(adjust_title_height)
@@ -402,6 +407,7 @@ class MainWindow(QMainWindow):
                 edit.setParent(None)
                 edit.deleteLater()
 
+            # --- Remove Notes Editor ---
             if hasattr(edit, '_notes_entry') and edit._notes_entry:
                 notes_entry = edit._notes_entry
                 if not sip.isdeleted(notes_entry):
@@ -413,6 +419,7 @@ class MainWindow(QMainWindow):
                     notes_entry.setParent(None)
                     notes_entry.deleteLater()
 
+            # --- Restore Title ---
             try:
                 left_layout.addStretch()
                 left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -426,7 +433,7 @@ class MainWindow(QMainWindow):
                     title_label.setText(new_title)
                 title_label.show()
 
-            # Restore Notes Label
+            # --- Restore Notes ---
             if hasattr(title_label, '_notes_text'):
                 notes_text = title_label._notes_text
                 if notes_text and not sip.isdeleted(notes_text):
@@ -444,6 +451,7 @@ class MainWindow(QMainWindow):
 
         self._current_edit_finish = finish
 
+        # --- Enter / Escape Handling --- 
         notes_filter = NotesEnterFilter(notes_entry, finish)
         notes_entry.installEventFilter(notes_filter)
         notes_entry._entry_filter = notes_filter
