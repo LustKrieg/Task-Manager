@@ -182,37 +182,9 @@ class MainWindow(QMainWindow):
 
     def refresh_tasks(self):
         self.task_editor.close_current_edit(True, skip_refresh=True)
-        self.clear_task_list()
-        tasks = self.get_visible_tasks()
+        self.task_list.clear_task_list()
+        tasks = self.task_list.get_visible_tasks()
         self.task_list.display_tasks(tasks)
-
-    def clear_task_list(self):
-        for timer in self.pending_timers.values():
-            timer.stop()
-            timer.deleteLater()
-        self.pending_timers.clear()
-
-        for i in reversed(range(self.task_layout.count())):
-            widget = self.task_layout.itemAt(i).widget()
-            if widget:
-                widget.deleteLater()
-
-    def get_visible_tasks(self):
-        # --- Circle Button ---
-        if self.current_tab == "active":
-            tasks = self.service.get_active_tasks()
-        elif self.current_tab == "completed":
-            tasks = self.service.get_completed_tasks()
-        else:
-            tasks = self.service.get_deleted_tasks()
-
-        if self.search_text:
-            tasks = [
-                t for t in tasks
-                if self.search_text in t.title.lower()
-                or self.search_text in t.notes.lower()
-            ]
-        return tasks
 
     def complete_task(self, task_id: int):
         self.service.complete_task(task_id)

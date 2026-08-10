@@ -26,3 +26,30 @@ class TaskList:
             separator.setFixedHeight(1)
             separator.setStyleSheet("background-color: #D1D1D6;")
             self.main_window.task_layout.addWidget(separator)
+
+    def clear_task_list(self):
+        for timer in self.main_window.pending_timers.values():
+            timer.stop()
+            timer.deleteLater()
+        self.main_window.pending_timers.clear()
+
+        for i in reversed(range(self.main_window.task_layout.count())):
+            widget = self.main_window.task_layout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+
+    def get_visible_tasks(self):
+        if self.main_window.current_tab == "active":
+            tasks = self.main_window.service.get_active_tasks()
+        elif self.main_window.current_tab == "completed":
+            tasks = self.main_window.service.get_completed_tasks()
+        else:
+            tasks = self.main_window.service.get_deleted_tasks()
+
+        if self.main_window.search_text:
+            tasks = [
+                t for t in tasks
+                if self.main_window.search_text in t.title.lower()
+                or self.main_window.search_text in t.notes.lower()
+            ]
+        return tasks
