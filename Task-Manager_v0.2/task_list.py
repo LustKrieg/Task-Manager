@@ -6,20 +6,23 @@ class TaskList:
     def __init__(self, main_window):
         self.main_window = main_window
 
+    def create_task_row(self, task):
+        row = TaskRow(task, self.main_window.current_tab, self.main_window)
+        circle = row.circle
+        row.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        row.customContextMenuRequested.connect(lambda pos, tid=task.id: self.main_window.show_context_menu(pos, tid))
+
+        # Circle button behavior
+        if self.main_window.current_tab == "active" and not task.completed:
+            circle.clicked.connect(lambda checked, tid=task.id, btn=circle: self.main_window.handle_circle_click(tid, btn))
+
+        elif self.main_window.current_tab == "completed" and task.completed:
+            circle.clicked.connect(lambda checked, tid=task.id: self.main_window.undo_task(tid))  
+        return row
+
     def display_tasks(self, tasks):
         for task in tasks:
-            row = TaskRow(task, self.main_window.current_tab, self.main_window)
-            circle = row.circle
-            row.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-            row.customContextMenuRequested.connect(lambda pos, tid=task.id: self.main_window.show_context_menu(pos, tid))
-
-            # Circle color logic
-            if self.main_window.current_tab == "active" and not task.completed:
-                circle.clicked.connect(lambda checked, tid=task.id, btn=circle: self.main_window.handle_circle_click(tid, btn))
-
-            elif self.main_window.current_tab == "completed" and task.completed:
-                circle.clicked.connect(lambda checked, tid=task.id: self.main_window.undo_task(tid))
-
+            row = self.create_task_row(task)
             self.main_window.task_layout.addWidget(row)
 
             separator = QWidget()
