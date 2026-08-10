@@ -15,6 +15,7 @@ from styles import SIDEBAR_BUTTON_STYLE
 from sidebar import Sidebar
 from task_row import TaskRow
 from task_editor import TaskEditor
+from task_list import TaskList
 
 
 class MainWindow(QMainWindow):
@@ -27,6 +28,7 @@ class MainWindow(QMainWindow):
         self.pending_timers = {}
         self.search_text = ""
         self.task_editor = TaskEditor(self)
+        self.task_list = TaskList(self)
 
         # --- Central Widget ---
         central = QWidget()
@@ -180,7 +182,11 @@ class MainWindow(QMainWindow):
 
     def refresh_tasks(self):
         self.task_editor.close_current_edit(True, skip_refresh=True)
+        self.clear_task_list()
+        tasks = self.get_visible_tasks()
+        self.task_list.display_tasks(tasks)
 
+    def clear_task_list(self):
         for timer in self.pending_timers.values():
             timer.stop()
             timer.deleteLater()
@@ -191,6 +197,7 @@ class MainWindow(QMainWindow):
             if widget:
                 widget.deleteLater()
 
+    def get_visible_tasks(self):
         # --- Circle Button ---
         if self.current_tab == "active":
             tasks = self.service.get_active_tasks()
@@ -205,26 +212,7 @@ class MainWindow(QMainWindow):
                 if self.search_text in t.title.lower()
                 or self.search_text in t.notes.lower()
             ]
-
-        for task in tasks:
-            row = TaskRow(task, self.current_tab, self)
-            circle = row.circle
-            row.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-            row.customContextMenuRequested.connect(lambda pos, tid=task.id: self.show_context_menu(pos, tid))
-
-            # Circle color logic
-            if self.current_tab == "active" and not task.completed:
-                circle.clicked.connect(lambda checked, tid=task.id, btn=circle: self.handle_circle_click(tid, btn))
-
-            elif self.current_tab == "completed" and task.completed:
-                circle.clicked.connect(lambda checked, tid=task.id: self.undo_task(tid))
-
-            self.task_layout.addWidget(row)
-
-            separator = QWidget()
-            separator.setFixedHeight(1)
-            separator.setStyleSheet("background-color: #D1D1D6;")
-            self.task_layout.addWidget(separator)
+        return tasks
 
     def complete_task(self, task_id: int):
         self.service.complete_task(task_id)
