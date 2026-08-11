@@ -28,7 +28,6 @@ class MainWindow(QMainWindow):
         self.pending_timers = {}
         self.search_text = ""
         self.task_editor = TaskEditor(self)
-        self.task_list = TaskList(self)
 
         # --- Central Widget ---
         central = QWidget()
@@ -146,6 +145,7 @@ class MainWindow(QMainWindow):
         self.task_layout = QVBoxLayout(self.task_container)
         self.task_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.task_layout.setContentsMargins(0, 0, 0, 0)
+        self.task_list = TaskList(self, self.task_layout)
 
         scroll.setWidget(self.task_container)
         content_layout.addWidget(scroll)

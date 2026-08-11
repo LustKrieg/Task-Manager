@@ -3,8 +3,9 @@ from PyQt6.QtCore import Qt
 from task_row import TaskRow
 
 class TaskList:
-    def __init__(self, main_window):
+    def __init__(self, main_window, task_layout):
         self.main_window = main_window
+        self.task_layout = task_layout
 
     def create_task_row(self, task):
         row = TaskRow(task, self.main_window.current_tab, self.main_window)
@@ -23,12 +24,12 @@ class TaskList:
     def display_tasks(self, tasks):
         for task in tasks:
             row = self.create_task_row(task)
-            self.main_window.task_layout.addWidget(row)
+            self.task_layout.addWidget(row)
 
             separator = QWidget()
             separator.setFixedHeight(1)
             separator.setStyleSheet("background-color: #D1D1D6;")
-            self.main_window.task_layout.addWidget(separator)
+            self.task_layout.addWidget(separator)
 
     def clear_task_list(self):
         for timer in self.main_window.pending_timers.values():
@@ -36,8 +37,8 @@ class TaskList:
             timer.deleteLater()
         self.main_window.pending_timers.clear()
 
-        for i in reversed(range(self.main_window.task_layout.count())):
-            widget = self.main_window.task_layout.itemAt(i).widget()
+        for i in reversed(range(self.task_layout.count())):
+            widget = self.task_layout.itemAt(i).widget()
             if widget:
                 widget.deleteLater()
 
