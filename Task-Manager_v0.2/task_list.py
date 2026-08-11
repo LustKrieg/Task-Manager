@@ -10,6 +10,20 @@ class TaskList:
     def create_task_row(self, task):
         row = TaskRow(task, self.main_window.current_tab, self.main_window)
         circle = row.circle
+
+        if self.is_task_pending(task.id):
+            circle.setText("◉")
+            circle.setStyleSheet('''
+            QPushButton {
+            border: none;
+            background: transparent;
+            color: #E30000;
+            font-size: 22px;
+            font-weight: 300;
+            }
+            QPushButton: hover { color: #E30000; }
+            QPushButton: pressed { color: #E30000; }
+            ''')
         row.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         row.customContextMenuRequested.connect(lambda pos, tid=task.id: self.main_window.show_context_menu(pos, tid))
 
@@ -52,3 +66,7 @@ class TaskList:
                 or self.main_window.search_text in t.notes.lower()
             ]
         return tasks
+
+    def is_task_pending(self, task_id):
+        return task_id in self.main_window.pending_timers
+    
