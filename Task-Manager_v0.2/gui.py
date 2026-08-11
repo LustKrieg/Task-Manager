@@ -229,9 +229,15 @@ class MainWindow(QMainWindow):
         from PyQt6.QtCore import QTimer
         timer = QTimer()
         timer.setSingleShot(True)
-        timer.timeout.connect(lambda: self.complete_task(task_id))
+        timer.timeout.connect(lambda: self.finish_pending_completion(task_id))
         timer.start(1500)
         self.pending_timers[task_id] = timer
+
+    def finish_pending_completion(self, task_id):
+        timer = self.pending_timers.pop(task_id, None)
+        if timer:
+            timer.deleteLater()
+        self.complete_task(task_id)
 
     def start_editing(self, title_label, task_id, current_title, focus_on="title"):
         self.task_editor.start_editing(title_label, task_id, current_title, focus_on)

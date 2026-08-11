@@ -32,11 +32,6 @@ class TaskList:
             self.task_layout.addWidget(separator)
 
     def clear_task_list(self):
-        for timer in self.main_window.pending_timers.values():
-            timer.stop()
-            timer.deleteLater()
-        self.main_window.pending_timers.clear()
-
         for i in reversed(range(self.task_layout.count())):
             widget = self.task_layout.itemAt(i).widget()
             if widget:
