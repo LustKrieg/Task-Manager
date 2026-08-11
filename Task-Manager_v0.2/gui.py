@@ -4,16 +4,13 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QLineEdit, QPushButton, QLabel,
     QScrollArea,QMenu
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
 from database import TaskDatabase
 from service import TaskService
 
 # From other files
-from datetime import date
-from styles import SIDEBAR_BUTTON_STYLE
 from sidebar import Sidebar
-from task_row import TaskRow
 from task_editor import TaskEditor
 from task_list import TaskList
 
@@ -59,7 +56,7 @@ class MainWindow(QMainWindow):
         # --- Title ---
         self.title_label = QLabel("Active")
         self.title_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        content_layout.addWidget(self.title_label)
+#        content_layout.addWidget(self.title_label)
 
         # --- Top Bar: Add "+" Button
         top_bar = QHBoxLayout()
@@ -226,7 +223,6 @@ class MainWindow(QMainWindow):
             QPushButton:pressed { color: #E30000; }
         ''')
 
-        from PyQt6.QtCore import QTimer
         timer = QTimer()
         timer.setSingleShot(True)
         timer.timeout.connect(lambda: self.finish_pending_completion(task_id))
