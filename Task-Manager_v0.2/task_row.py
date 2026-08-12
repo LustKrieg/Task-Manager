@@ -66,18 +66,19 @@ class TaskRow(QWidget):
         self.date_label = QLabel(self.task.created_at.strftime("%b %d, %I:%M %p"))
         self.date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
 
-        self.notes_label = None
-        if self.task.notes and self.task.notes.strip():
-            self.notes_label = QLabel(self.task.notes)
-            self.notes_label.setStyleSheet("color: #8E8E93; font-size: 12px;")
-            self.notes_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            self.notes_label.setWordWrap(True)
+        # Always create notes label
+        self.notes_label = QLabel(self.task.notes or "")
+        self.notes_label.setStyleSheet("color: #8E8E93; font-size: 12px;")
+        self.notes_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.notes_label.setWordWrap(True)
 
-            if self.current_tab == "active":
-                self.notes_label.mousePressEvent = self.open_notes_edit
-                self.title_label._notes_text = self.notes_label
-            else:
-                self.notes_label = None
+        if self.current_tab == "active":
+            self.notes_label.mousePressEvent = self.open_notes_edit
+
+        self.title_label._notes_text = self.notes_label
+
+        if not self.task.notes or not self.task.notes.strip():
+            self.notes_label.hide()
 
     def build_layout(self):
         self.row_layout = QHBoxLayout(self)
