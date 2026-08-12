@@ -11,10 +11,7 @@ class TaskRow(QWidget):
         self.main_window = main_window
 
         self.setObjectName("taskRow")
-        self.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed,
-        )
+        self.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed)
         self.build_circle()
         self.build_labels()
         self.build_layout()
@@ -57,7 +54,7 @@ class TaskRow(QWidget):
     def build_labels(self):
         self.title_label = QLabel(self.task.title)
         self.title_label.setStyleSheet("color: black; font-size: 15px;")
-        self.title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.title_label.setWordWrap(True)
 
         if self.current_tab == "active":
@@ -87,15 +84,12 @@ class TaskRow(QWidget):
         self.left_column = QWidget()
         self.left_column.setMinimumWidth(0)
         self.left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        
         self.left_layout = QVBoxLayout(self.left_column)
         self.left_layout.setContentsMargins(0, 0, 0, 0)
         self.left_layout.setSpacing(2)
-
         self.left_layout.addWidget(self.title_label)
-
-        if self.notes_label:
-            self.left_layout.addWidget(self.notes_label)
-
+        self.left_layout.addWidget(self.notes_label)
         self.left_layout.addWidget(self.date_label)
 
         self.row_layout.addWidget(self.left_column, 1)
