@@ -23,7 +23,14 @@ class TaskEditor:
         # --- Title Entry ---
         edit = QTextEdit()
         edit.setPlainText(current_title)
+
+        edit.setMinimumWidth(0)
+        edit.setMaximumWidth(16777215)
+
         edit.document().setDocumentMargin(0)
+        edit.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         edit.setStyleSheet('''
             QTextEdit {
                 border: none;
@@ -40,6 +47,13 @@ class TaskEditor:
         # --- Notes entry ---
         notes_entry = QTextEdit()
         notes_entry.setPlaceholderText("Notes")
+
+        edit.setMinimumWidth(0)
+        edit.setMaximumWidth(16777215)
+
+        notes_entry.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        notes_entry.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        notes_entry.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         notes_entry.setStyleSheet('''
             QTextEdit {
                 border: none;

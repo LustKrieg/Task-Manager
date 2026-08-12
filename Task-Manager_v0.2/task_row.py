@@ -84,6 +84,8 @@ class TaskRow(QWidget):
         self.row_layout.setContentsMargins(0, 0, 0, 0)
 
         self.left_column = QWidget()
+        self.left_column.setMinimumWidth(0)
+        self.left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self.left_layout = QVBoxLayout(self.left_column)
         self.left_layout.setContentsMargins(0, 0, 0, 0)
         self.left_layout.setSpacing(2)
@@ -95,8 +97,7 @@ class TaskRow(QWidget):
 
         self.left_layout.addWidget(self.date_label)
 
-        self.row_layout.addWidget(self.left_column)
-        self.row_layout.setStretchFactor(self.left_column, 1)
+        self.row_layout.addWidget(self.left_column, 1)
         self.row_layout.addWidget(self.circle)
 
     def open_title_edit(self, event):
