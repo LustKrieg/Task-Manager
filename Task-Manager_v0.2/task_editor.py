@@ -1,7 +1,30 @@
 from PyQt6.QtWidgets import QTextEdit, QSizePolicy
-from PyQt6.QtCore import Qt, QTimer, QEvent, QObject
-from PyQt6.QtGui import QShortcut, QKeySequence, QFontMetrics, QTextCursor
+from PyQt6.QtCore import Qt, QEvent, QObject
+from PyQt6.QtGui import QShortcut, QKeySequence, QTextCursor
 from PyQt6 import sip
+
+class AutoResizeTextEdit(QTextEdit):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        self.document().setDocumentMargin(0)
+        self.document().contentsChanged.connect(self.update_height)
+
+    def update_height(self):
+        width = self.viewport().width()
+
+        if width <= 0:
+            return
+
+        self.document().setTextWidth(width)
+        height = self.document().size().height()
+        self.setFixedHeight(max(int(height) + 4, self.fontMetrics().lineSpacing() + 4))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_height()
 
 class TaskEditor:
     def __init__(self, main_window):
@@ -21,16 +44,11 @@ class TaskEditor:
         left_layout.setSpacing(0)
 
         # --- Title Entry ---
-        edit = QTextEdit()
+        edit = AutoResizeTextEdit()
         edit.setPlainText(current_title)
 
         edit.setMinimumWidth(0)
         edit.setMaximumWidth(16777215)
-
-        edit.document().setDocumentMargin(0)
-        edit.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
-        edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         edit.setStyleSheet('''
             QTextEdit {
                 border: none;
@@ -40,20 +58,14 @@ class TaskEditor:
                 padding: 0px;
             }
         ''')
-        edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        edit.document().setDocumentMargin(0)
+        edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # --- Notes entry ---
-        notes_entry = QTextEdit()
+        notes_entry = AutoResizeTextEdit()
         notes_entry.setPlaceholderText("Notes")
 
-        edit.setMinimumWidth(0)
-        edit.setMaximumWidth(16777215)
-
-        notes_entry.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
-        notes_entry.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        notes_entry.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        notes_entry.setMinimumWidth(0)
+        notes_entry.setMaximumWidth(16777215)
         notes_entry.setStyleSheet('''
             QTextEdit {
                 border: none;
@@ -64,45 +76,11 @@ class TaskEditor:
             }
         ''')
         notes_entry.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        notes_entry.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        notes_entry.document().setDocumentMargin(0)
-
-        # --- Notes Height ---
-        fm_notes = QFontMetrics(notes_entry.font())
-        notes_line_height = fm_notes.lineSpacing()
-
-        def adjust_notes_height():
-            if sip.isdeleted(notes_entry):
-                return
-            doc = notes_entry.document()
-            doc.setTextWidth(notes_entry.viewport().width())
-            doc_height = int(doc.size().height())
-            notes_entry.setFixedHeight(max(notes_line_height + 4, doc_height))
-
-        notes_entry.document().contentsChanged.connect(adjust_notes_height)
-        QTimer.singleShot(0, adjust_notes_height)
 
         # --- Load Existing Notes ---
         current_notes = self.main_window.service.get_notes(task_id)
         if current_notes and current_notes.strip():
             notes_entry.setPlainText(current_notes)
-
-        # --- Title Height ---
-        fm = QFontMetrics(edit.font())
-        line_height = fm.lineSpacing()
-
-        def adjust_title_height():
-            if sip.isdeleted(edit):
-                return
-
-            doc = edit.document()
-            doc.setTextWidth(edit.viewport().width())
-            doc_height = int(doc.size().height())
-
-            edit.setFixedHeight(max(line_height + 4, doc_height))
-
-        edit.document().contentsChanged.connect(adjust_title_height)
-
         title_label.hide()
 
         # --- Hide Static Labels ---
@@ -114,7 +92,6 @@ class TaskEditor:
         # --- Add Editors ---
         left_layout.insertWidget(0, edit)
         left_layout.insertWidget(1, notes_entry)
-        QTimer.singleShot(0, adjust_title_height)
 
         # --- Set focus based on clicked field ---
         if focus_on == "title":
@@ -148,10 +125,6 @@ class TaskEditor:
 
             # --- Remove Title Editor ---
             if not sip.isdeleted(edit):
-                try:
-                    edit.document().contentsChanged.disconnect(adjust_title_height)
-                except TypeError:
-                    pass
                 left_layout.removeWidget(edit)
                 edit.setParent(None)
                 edit.deleteLater()
@@ -160,10 +133,6 @@ class TaskEditor:
             if hasattr(edit, '_notes_entry') and edit._notes_entry:
                 notes_entry = edit._notes_entry
                 if not sip.isdeleted(notes_entry):
-                    try:
-                        notes_entry.document().contentsChanged.disconnect(adjust_notes_height)
-                    except TypeError:
-                        pass
                     left_layout.removeWidget(notes_entry)
                     notes_entry.setParent(None)
                     notes_entry.deleteLater()
