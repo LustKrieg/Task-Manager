@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QTextEdit, QSizePolicy
-from PyQt6.QtCore import Qt, QEvent, QObject
+from PyQt6.QtCore import Qt, QTimer, QEvent, QObject
 from PyQt6.QtGui import QShortcut, QKeySequence, QTextCursor
 from PyQt6 import sip
 
@@ -19,8 +19,11 @@ class AutoResizeTextEdit(QTextEdit):
             return
 
         self.document().setTextWidth(width)
-        height = self.document().size().height()
-        self.setFixedHeight(max(int(height) + 4, self.fontMetrics().lineSpacing() + 4))
+        document_height = self.document().documentLayout().documentSize().height()
+        self.setFixedHeight(max(int(document_height) + 4, self.fontMetrics().lineSpacing() + 4))
+
+        extra = self.fontMetrics().lineSpacing()
+        self.setFixedHeight(max(int(document_height), self.fontMetrics().lineSpacing()))
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -92,6 +95,10 @@ class TaskEditor:
         # --- Add Editors ---
         left_layout.insertWidget(0, edit)
         left_layout.insertWidget(1, notes_entry)
+
+        # Recalculate the height
+        QTimer.singleShot(0, edit.update_height)
+        QTimer.singleShot(0, notes_entry.update_height)
 
         # --- Set focus based on clicked field ---
         if focus_on == "title":
