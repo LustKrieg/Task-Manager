@@ -80,11 +80,12 @@ class TaskRow(QWidget):
     def build_layout(self):
         self.row_layout = QHBoxLayout(self)
         self.row_layout.setContentsMargins(0, 0, 0, 0)
+        self.row_layout.setSpacing(8)
 
         self.left_column = QWidget()
         self.left_column.setMinimumWidth(0)
         self.left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        
+
         self.left_layout = QVBoxLayout(self.left_column)
         self.left_layout.setContentsMargins(0, 0, 0, 0)
         self.left_layout.setSpacing(2)
@@ -92,8 +93,8 @@ class TaskRow(QWidget):
         self.left_layout.addWidget(self.notes_label)
         self.left_layout.addWidget(self.date_label)
 
+        self.row_layout.addWidget(self.circle,alignment=Qt.AlignmentFlag.AlignTop)
         self.row_layout.addWidget(self.left_column, 1)
-        self.row_layout.addWidget(self.circle)
 
     def open_title_edit(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
