@@ -34,22 +34,51 @@ class TaskRow(QWidget):
         hover_color = "#E30000" if not self.task.completed else "#8E8E93"
 
         self.circle = QPushButton(circle_text)
-        self.circle.setFixedSize(30, 30)
+        self.circle.setFixedSize(26, 26)
         self.circle.setStyleSheet(f"""
             QPushButton {{
                 border: none;
                 background: transparent;
                 color: {circle_color};
-                font-size: 22px;
+                font-size: 19px;
                 font-weight: 300;
             }}
             QPushButton:hover {{
                 color: {hover_color};
             }}
             QPushButton:pressed {{
-                color: #E30000;
+                color: #8E8E93;
             }}
         """)
+
+    def set_circle_state(self, completed, pressed=False):
+        if completed:
+            circle_text = "◉"
+            self.circle_color = "#E30000"
+            hover_color = "#E30000"
+        else:
+            circle_text = "○"
+            circle_color = "#8E8E93"
+            hover_color = "#E30000"
+        if pressed:
+            circle_color = "#E30000"
+
+        self.circle.setText(circle_text)
+        self.circle.setStyleSheet(f'''
+            QPushButton {{
+            border: none;
+            background: transparent;
+            color: {circle_color};
+            font-size: 19px;
+            font-weight: 300;
+            }}
+            QPushButton:hover {{
+            color: {hover_color};
+            }}
+            QPushButton:pressed {{
+            color: #8E8E93;
+            }}
+        ''')
 
     def build_labels(self):
         self.title_label = QLabel(self.task.title)

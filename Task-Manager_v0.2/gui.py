@@ -196,43 +196,39 @@ class MainWindow(QMainWindow):
             timer = self.pending_timers.pop(task_id)
             timer.stop()
             timer.deleteLater()
-            circle_button.setText("○")
-            circle_button.setStyleSheet('''
-            QPushButton {
-                border: none;
-                background: transparent;
-                color: #8E8E93;
-                font-size: 22px;
-                font-weight: 300;
-            }
-            QPushButton:hover {color: #E30000;}
-            QPushButton:pressed {color: #E30000;}
-            ''')
-            return
+            task = self.service.get_task(task_id)
 
-        circle_button.setText("◉")
-        circle_button.setStyleSheet('''
-            QPushButton {
-                border: none;
-                background: transparent;
-                color: #E30000;
-                font-size: 22px;
-                font-weight: 300;
-            }
-            QPushButton:hover { color: #E30000; }
-            QPushButton:pressed { color: #E30000; }
-        ''')
+            if task.completed:
+                circle_button.setText("◉")
+            else:
+                circle_button.setText("○")
+            return
+        task = self.service.get_task(task_id)
+
+        if task.completed:
+            circle_button.setText("○")
+            pending_action = "undo"
+        else:
+            circle_button.setText("◉")
+            pending_action = "complete"
 
         timer = QTimer()
         timer.setSingleShot(True)
-        timer.timeout.connect(lambda: self.finish_pending_completion(task_id))
+        timer.timeout.connect(lambda: self.finish_pending_completion(task_id, pending_action))
         timer.start(1500)
         self.pending_timers[task_id] = timer
 
-    def finish_pending_completion(self, task_id):
+    def finish_pending_completion(self, task_id, action):
         timer = self.pending_timers.pop(task_id, None)
         if timer:
             timer.deleteLater()
+
+        if action == "complete":
+            self.service.complete_task(task_id)
+
+        elif action == "undo":
+            self.service.undo_task(task_id)
+
         self.complete_task(task_id)
 
     def start_editing(self, title_label, task_id, current_title, focus_on="title"):

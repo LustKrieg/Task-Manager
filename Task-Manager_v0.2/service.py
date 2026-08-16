@@ -52,6 +52,9 @@ class TaskService:
     def get_notes(self, task_id: int) -> str:
         return self.db.get_notes(task_id)
 
+    def get_task(self, task_id: int) -> Task | None:
+        return self.db.get_task(task_id)
+
 if __name__ == "__main__":
     db = TaskDatabase()
     db.create_table()

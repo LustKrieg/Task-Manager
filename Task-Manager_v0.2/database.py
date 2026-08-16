@@ -159,3 +159,23 @@ class TaskDatabase:
             WHERE id = ?
             ''', (task_id,)).fetchone()
             return result[0] if result and result[0] else ""
+
+    def get_task(self, task_id: int) -> Task | None:
+        with self._connect() as conn:
+            row = conn.execute('''
+                SELECT id, title, completed, created_at, deleted, notes
+                FROM tasks
+                WHERE id = ?
+            ''', (task_id,)).fetchone()
+
+            if row is None:
+                return None
+
+            return Task(
+                id=row[0],
+                title=row[1],
+                completed=row[2],
+                created_at=datetime.fromisoformat(row[3]),
+                deleted=row[4],
+                notes=row[5] if row[5] else ""
+        )
