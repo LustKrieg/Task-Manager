@@ -229,7 +229,7 @@ class MainWindow(QMainWindow):
         elif action == "undo":
             self.service.undo_task(task_id)
 
-        self.complete_task(task_id)
+        self.refresh_tasks()
 
     def start_editing(self, title_label, task_id, current_title, focus_on="title"):
         self.task_editor.start_editing(title_label, task_id, current_title, focus_on)
