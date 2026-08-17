@@ -1,7 +1,24 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy, 
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
+
+class CircleButton(QPushButton):
+    pressed_state = pyqtSignal()
+    released_state = pyqtSignal()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.pressed_state.emit()
+
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.pressed_state.emit()
+
+        super().mouseReleaseEvent(event)
+
 class TaskRow(QWidget):
     def __init__(self, task, current_tab, main_window):
         super().__init__()
@@ -33,7 +50,7 @@ class TaskRow(QWidget):
 
         hover_color = "#E30000" if not self.task.completed else "#8E8E93"
 
-        self.circle = QPushButton(circle_text)
+        self.circle = CircleButton(circle_text)
         self.circle.setFixedSize(26, 26)
         self.circle.setStyleSheet(f"""
             QPushButton {{
@@ -50,18 +67,19 @@ class TaskRow(QWidget):
                 color: #8E8E93;
             }}
         """)
+        self.circle.pressed_state.connect(self.circle_mouse_pressed)
+        self.circle.released_state.connect(self.circle_mouse_released)
 
-    def set_circle_state(self, completed, pressed=False):
+    def set_circle_state(self, completed, pending=False):
         if completed:
             circle_text = "◉"
-            self.circle_color = "#E30000"
+            circle_color = "#E30000" if not pending else "#8E8E93"
             hover_color = "#E30000"
         else:
             circle_text = "○"
             circle_color = "#8E8E93"
             hover_color = "#E30000"
-        if pressed:
-            circle_color = "#E30000"
+        self.circle.setText(circle_text)
 
         self.circle.setText(circle_text)
         self.circle.setStyleSheet(f'''
@@ -79,6 +97,55 @@ class TaskRow(QWidget):
             color: #8E8E93;
             }}
         ''')
+
+    def circle_mouse_pressed(self):
+        if self.task.completed:
+            self.circle.setText("○")
+            self.circle.setStyleSheet('''
+                QPushButton {
+                border: none;
+                background: transparent;
+                color: #8E8E93;
+                font-size: 19px;
+                font-weight: 300;
+                }
+            ''')
+        else:
+            self.circle.setText("●")
+            self.circle.setStyleSheet('''
+                QPushButton {
+                border: none;
+                background: transparent;
+                color: #8E8E93;
+                font-size: 19px;
+                font-weight: 300;
+                }
+            ''')
+
+    def circle_mouse_released(self):
+        if self.task.completed:
+            self.circle.setText("○")
+            self.circle.setStyleSheet("""
+                QPushButton {
+                    border: none;
+                    background: transparent;
+                    color: #8E8E93;
+                    font-size: 19px;
+                    font-weight: 300;
+                }
+            """)
+        else:
+            self.circle.setText("●")
+            self.circle.setStyleSheet("""
+                QPushButton {
+                    border: none;
+                    background: transparent;
+                    color: #E30000;
+                    font-size: 19px;
+                    font-weight: 300;
+                }
+            """)
+
 
     def build_labels(self):
         self.title_label = QLabel(self.task.title)
