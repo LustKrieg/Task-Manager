@@ -15,7 +15,7 @@ class CircleButton(QPushButton):
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.pressed_state.emit()
+            self.released_state.emit()
 
         super().mouseReleaseEvent(event)
 
@@ -111,7 +111,7 @@ class TaskRow(QWidget):
                 }
             ''')
         else:
-            self.circle.setText("●")
+            self.circle.setText("◉")
             self.circle.setStyleSheet('''
                 QPushButton {
                 border: none;
@@ -135,7 +135,7 @@ class TaskRow(QWidget):
                 }
             """)
         else:
-            self.circle.setText("●")
+            self.circle.setText("◉")
             self.circle.setStyleSheet("""
                 QPushButton {
                     border: none;

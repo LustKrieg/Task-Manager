@@ -18,7 +18,7 @@ class TaskList:
             border: none;
             background: transparent;
             color: #E30000;
-            font-size: 22px;
+            font-size: 19px;
             font-weight: 300;
             }
             QPushButton: hover { color: #E30000; }
