@@ -10,6 +10,7 @@ class TaskList:
     def create_task_row(self, task):
         row = TaskRow(task, self.main_window.current_tab, self.main_window)
         circle = row.circle
+        circle._task_row = row
 
         if self.is_task_pending(task.id):
             circle.setText("◉")

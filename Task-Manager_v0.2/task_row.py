@@ -81,7 +81,6 @@ class TaskRow(QWidget):
             hover_color = "#E30000"
         self.circle.setText(circle_text)
 
-        self.circle.setText(circle_text)
         self.circle.setStyleSheet(f'''
             QPushButton {{
             border: none;

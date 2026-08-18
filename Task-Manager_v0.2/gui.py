@@ -13,6 +13,7 @@ from service import TaskService
 from sidebar import Sidebar
 from task_editor import TaskEditor
 from task_list import TaskList
+from task_row import TaskRow
 
 
 class MainWindow(QMainWindow):
@@ -198,11 +199,10 @@ class MainWindow(QMainWindow):
             timer.deleteLater()
             task = self.service.get_task(task_id)
 
-            if task.completed:
-                circle_button.setText("◉")
-            else:
-                circle_button.setText("○")
+            row = circle_button._task_row
+            row.set_circle_state(task.completed, pending=False)
             return
+        
         task = self.service.get_task(task_id)
 
         if task.completed:
