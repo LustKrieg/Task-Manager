@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy, 
-    QHBoxLayout, QVBoxLayout, QPushButton, QLabel)
+    QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
@@ -152,6 +152,21 @@ class TaskRow(QWidget):
         self.title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.title_label.setWordWrap(True)
 
+        self.info_button = QToolButton()
+        self.info_button.setText("ⓘ")
+        self.info_button.setFixedSize(26, 26)
+        self.info_button.setStyleSheet('''
+            QToolButton {
+                border: none;
+                background: transparent;
+                color: #8E8E93;
+                font-size: 17px;
+            }
+            QToolButton:hover {
+                color: #3A3A3C;
+            }
+        ''')
+
         if self.current_tab == "active":
             self.title_label.mousePressEvent = self.open_title_edit
 
@@ -184,7 +199,15 @@ class TaskRow(QWidget):
         self.left_layout = QVBoxLayout(self.left_column)
         self.left_layout.setContentsMargins(0, 0, 0, 0)
         self.left_layout.setSpacing(2)
-        self.left_layout.addWidget(self.title_label)
+
+        self.title_row = QHBoxLayout()
+        self.title_row.setContentsMargins(0, 0, 0, 0)
+        self.title_row.setSpacing(4)
+
+        self.title_row.addWidget(self.title_label)
+        self.title_row.addWidget(self.info_button, alignment=Qt.AlignmentFlag.AlignTop)
+
+        self.left_layout.addLayout(self.title_row)
         self.left_layout.addWidget(self.notes_label)
         self.left_layout.addWidget(self.date_label)
 
