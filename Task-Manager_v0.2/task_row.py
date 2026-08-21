@@ -149,7 +149,7 @@ class TaskRow(QWidget):
     def build_labels(self):
         self.title_label = QLabel(self.task.title)
         self.title_label.setStyleSheet("color: black; font-size: 15px;")
-        self.title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.title_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         self.title_label.setWordWrap(True)
 
         self.info_button = QToolButton()
@@ -166,6 +166,7 @@ class TaskRow(QWidget):
                 color: #3A3A3C;
             }
         ''')
+        self.info_button.hide()
 
         if self.current_tab == "active":
             self.title_label.mousePressEvent = self.open_title_edit
@@ -187,6 +188,17 @@ class TaskRow(QWidget):
         if not self.task.notes or not self.task.notes.strip():
             self.notes_label.hide()
 
+        self.title_container = QWidget()
+        self.title_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+
+        self.title_row = QHBoxLayout(self.title_container)
+        self.title_row.setContentsMargins(0, 0, 0, 0)
+        self.title_row.setSpacing(4)
+
+        self.title_row.addWidget(self.title_label)
+        self.title_row.addStretch()
+        self.title_row.addWidget(self.info_button, alignment=Qt.AlignmentFlag.AlignTop)
+
     def build_layout(self):
         self.row_layout = QHBoxLayout(self)
         self.row_layout.setContentsMargins(0, 0, 0, 0)
@@ -200,14 +212,7 @@ class TaskRow(QWidget):
         self.left_layout.setContentsMargins(0, 0, 0, 0)
         self.left_layout.setSpacing(2)
 
-        self.title_row = QHBoxLayout()
-        self.title_row.setContentsMargins(0, 0, 0, 0)
-        self.title_row.setSpacing(4)
-
-        self.title_row.addWidget(self.title_label)
-        self.title_row.addWidget(self.info_button, alignment=Qt.AlignmentFlag.AlignTop)
-
-        self.left_layout.addLayout(self.title_row)
+        self.left_layout.addWidget(self.title_container)
         self.left_layout.addWidget(self.notes_label)
         self.left_layout.addWidget(self.date_label)
 
@@ -230,3 +235,11 @@ class TaskRow(QWidget):
                 self.task.title,
                 focus_on="notes"
             )
+
+    def enterEvent(self, event):
+        self.info_button.show()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.info_button.hide()
+        super().leaveEvent(event)

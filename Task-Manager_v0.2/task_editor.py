@@ -20,9 +20,6 @@ class AutoResizeTextEdit(QTextEdit):
 
         self.document().setTextWidth(width)
         document_height = self.document().documentLayout().documentSize().height()
-        self.setFixedHeight(max(int(document_height) + 4, self.fontMetrics().lineSpacing() + 4))
-
-        extra = self.fontMetrics().lineSpacing()
         self.setFixedHeight(max(int(document_height), self.fontMetrics().lineSpacing()))
 
     def resizeEvent(self, event):
@@ -40,7 +37,9 @@ class TaskEditor:
         if sip.isdeleted(title_label):
             return
 
-        left_column = title_label.parent()
+        title_container = title_label.parent()
+        title_row = title_container.layout()
+        left_column = title_container.parentWidget()
         left_layout = left_column.layout()
 
         left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -93,6 +92,8 @@ class TaskEditor:
                 notes_text.hide()
 
         # --- Add Editors ---
+        title_row.removeWidget(title_label)
+        title_label.hide()
         left_layout.insertWidget(0, edit)
         left_layout.insertWidget(1, notes_entry)
 
@@ -146,7 +147,6 @@ class TaskEditor:
 
             # --- Restore Title ---
             try:
-                left_layout.addStretch()
                 left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
                 left_layout.update()
                 left_column.update()
