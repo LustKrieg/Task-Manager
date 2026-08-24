@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy, 
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton)
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtGui import QFont, QTextOption
 
 class CircleButton(QPushButton):
     pressed_state = pyqtSignal()
@@ -149,10 +149,30 @@ class TaskRow(QWidget):
     def build_labels(self):
         self.title_label = QLabel(self.task.title)
         self.title_label.setStyleSheet("color: black; font-size: 15px;")
-        self.title_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        self.title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.title_label.setWordWrap(True)
 
-        self.info_button = QToolButton()
+        if self.current_tab == "active":
+            self.title_label.mousePressEvent = self.open_title_edit
+
+        self.date_label = QLabel(self.task.created_at.strftime("%b %d, %I:%M %p"))
+        self.date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
+
+        # Always create notes label
+        self.notes_label = QLabel(self.task.notes or "")
+        self.notes_label.setStyleSheet("color: #8E8E93; font-size: 12px;")
+        self.notes_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.notes_label.setWordWrap(True)
+
+        if self.current_tab == "active":
+            self.notes_label.mousePressEvent = self.open_notes_edit
+
+        self.title_label._notes_text = self.notes_label
+
+        if not self.task.notes or not self.task.notes.strip():
+            self.notes_label.hide()
+
+        self.info_button = QToolButton(self)
         self.info_button.setText("ⓘ")
         self.info_button.setFixedSize(26, 26)
         self.info_button.setStyleSheet('''
@@ -168,37 +188,6 @@ class TaskRow(QWidget):
         ''')
         self.info_button.hide()
 
-        if self.current_tab == "active":
-            self.title_label.mousePressEvent = self.open_title_edit
-
-        self.date_label = QLabel(self.task.created_at.strftime("%b %d, %I:%M %p"))
-        self.date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
-
-        # Always create notes label
-        self.notes_label = QLabel(self.task.notes or "")
-        self.notes_label.setStyleSheet("color: #8E8E93; font-size: 12px;")
-        self.notes_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.notes_label.setWordWrap(True)
-
-        if self.current_tab == "active":
-            self.notes_label.mousePressEvent = self.open_notes_edit
-
-        self.title_label._notes_text = self.notes_label
-
-        if not self.task.notes or not self.task.notes.strip():
-            self.notes_label.hide()
-
-        self.title_container = QWidget()
-        self.title_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-
-        self.title_row = QHBoxLayout(self.title_container)
-        self.title_row.setContentsMargins(0, 0, 0, 0)
-        self.title_row.setSpacing(4)
-
-        self.title_row.addWidget(self.title_label)
-        self.title_row.addStretch()
-        self.title_row.addWidget(self.info_button, alignment=Qt.AlignmentFlag.AlignTop)
-
     def build_layout(self):
         self.row_layout = QHBoxLayout(self)
         self.row_layout.setContentsMargins(0, 0, 0, 0)
@@ -212,12 +201,13 @@ class TaskRow(QWidget):
         self.left_layout.setContentsMargins(0, 0, 0, 0)
         self.left_layout.setSpacing(2)
 
-        self.left_layout.addWidget(self.title_container)
+        self.left_layout.addWidget(self.title_label)
         self.left_layout.addWidget(self.notes_label)
         self.left_layout.addWidget(self.date_label)
 
         self.row_layout.addWidget(self.circle,alignment=Qt.AlignmentFlag.AlignTop)
         self.row_layout.addWidget(self.left_column, 1)
+        self.info_button.raise_()
 
     def open_title_edit(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -243,3 +233,12 @@ class TaskRow(QWidget):
     def leaveEvent(self, event):
         self.info_button.hide()
         super().leaveEvent(event)
+
+    # Position ⓘ at top-right of the row, vertically centered with first line
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        btn_w = self.info_button.width()
+        btn_h = self.info_button.height()
+        x = self.width() - btn_w - 2
+        y = (self.circle.height() - btn_h) // 2 # align with circle = first line
+        self.info_button.move(x, y)

@@ -146,6 +146,7 @@ class MainWindow(QMainWindow):
         self.task_list = TaskList(self, self.task_layout)
 
         scroll.setWidget(self.task_container)
+        scroll.setWidgetResizable(True)
         content_layout.addWidget(scroll)
 
         # --- Add sidebar and content to main layout ---

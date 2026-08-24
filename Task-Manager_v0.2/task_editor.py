@@ -37,9 +37,7 @@ class TaskEditor:
         if sip.isdeleted(title_label):
             return
 
-        title_container = title_label.parent()
-        title_row = title_container.layout()
-        left_column = title_container.parentWidget()
+        left_column = title_label.parent()
         left_layout = left_column.layout()
 
         left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -92,7 +90,6 @@ class TaskEditor:
                 notes_text.hide()
 
         # --- Add Editors ---
-        title_row.removeWidget(title_label)
         title_label.hide()
         left_layout.insertWidget(0, edit)
         left_layout.insertWidget(1, notes_entry)
