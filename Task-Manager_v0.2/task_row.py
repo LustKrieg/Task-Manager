@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy, 
-    QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton)
+    QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QTextOption
 
@@ -28,7 +28,7 @@ class TaskRow(QWidget):
         self.main_window = main_window
 
         self.setObjectName("taskRow")
-        self.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Preferred)
         self.build_circle()
         self.build_labels()
         self.build_layout()
@@ -149,7 +149,8 @@ class TaskRow(QWidget):
     def build_labels(self):
         self.title_label = QLabel(self.task.title)
         self.title_label.setStyleSheet("color: black; font-size: 15px;")
-        self.title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.title_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.title_label.setMinimumWidth(0)
         self.title_label.setWordWrap(True)
 
         if self.current_tab == "active":
@@ -161,7 +162,8 @@ class TaskRow(QWidget):
         # Always create notes label
         self.notes_label = QLabel(self.task.notes or "")
         self.notes_label.setStyleSheet("color: #8E8E93; font-size: 12px;")
-        self.notes_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.notes_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.notes_label.setMinimumWidth(0)
         self.notes_label.setWordWrap(True)
 
         if self.current_tab == "active":
