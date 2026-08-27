@@ -62,12 +62,14 @@ class MainWindow(QMainWindow):
         content = QWidget()
         content.setStyleSheet("background: white;")
         content_layout = QVBoxLayout(content)
+        content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         content_layout.setContentsMargins(25, 25, 25, 25)
         content_layout.setSpacing(15)
 
         # --- Title ---
         self.title_label = QLabel("Active")
         self.title_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        self.title_label.setFixedHeight(30)
 #        content_layout.addWidget(self.title_label)
 
         # --- Top Bar: Add "+" Button
@@ -102,7 +104,7 @@ class MainWindow(QMainWindow):
         # --- Scroll Area for Tasks ---
         scroll = TaskScrollArea()
         scroll.setWidgetResizable(False)
-        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet("""
             QScrollArea {
