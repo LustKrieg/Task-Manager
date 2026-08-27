@@ -67,6 +67,9 @@ class TaskRow(QWidget):
                 color: #8E8E93;
             }}
         """)
+        if self.current_tab == "trash":
+            self.circle.setEnabled(False)
+
         self.circle.pressed_state.connect(self.circle_mouse_pressed)
         self.circle.released_state.connect(self.circle_mouse_released)
 
