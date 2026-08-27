@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from task_row import TaskRow
 
 class TaskList:
@@ -46,7 +46,7 @@ class TaskList:
             separator.setStyleSheet("background-color: #D1D1D6;")
             self.task_layout.addWidget(separator)
 
-        self.update_container_height()
+        QTimer.singleShot(0, self.update_container_height)
 
     def update_container_height(self):
         self.task_layout.activate()
@@ -55,9 +55,16 @@ class TaskList:
             container.setFixedHeight(max(self.task_layout.sizeHint().height(), 1))
 
     def clear_task_list(self):
-        for i in reversed(range(self.task_layout.count())):
-            widget = self.task_layout.itemAt(i).widget()
+        container = self.task_layout.parentWidget()
+        if container is not None:
+            container.setMinimumHeight(0)
+            container.setMaximumHeight(16777215)
+
+        while self.task_layout.count():
+            item = self.task_layout.takeAt(0)
+            widget = item.widget()
             if widget:
+                widget.setParent(None)
                 widget.deleteLater()
 
     def get_visible_tasks(self):
