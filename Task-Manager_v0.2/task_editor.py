@@ -34,9 +34,6 @@ class AutoResizeTextEdit(QTextEdit):
         document_height = int(document_height + 0.99) + 2
         self.setFixedHeight(max(document_height, self.fontMetrics().lineSpacing() + 2))
         self._disable_vertical_scroll(0, self.verticalScrollBar().maximum())
-        update_container_height = getattr(self, "_update_container_height", None)
-        if update_container_height is not None:
-            QTimer.singleShot(0, update_container_height)
 
     def wheelEvent(self, event):
         event.ignore()
@@ -64,7 +61,6 @@ class TaskEditor:
 
         # --- Title Entry ---
         edit = AutoResizeTextEdit()
-        edit._update_container_height = self.main_window.task_list.update_container_height
         edit.setPlainText(current_title)
 
         edit.setMinimumWidth(0)
@@ -82,7 +78,6 @@ class TaskEditor:
 
         # --- Notes entry ---
         notes_entry = AutoResizeTextEdit()
-        notes_entry._update_container_height = self.main_window.task_list.update_container_height
         notes_entry.setPlaceholderText("Notes")
 
         notes_entry.setMinimumWidth(0)
