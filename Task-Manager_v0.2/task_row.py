@@ -54,11 +54,30 @@ class NewTaskRow(QWidget):
         self.title_input.returnPressed.connect(save_task)
         self.title_input.escape_pressed.connect(cancel_task)
 
+        self.notes_input = NewTaskInput()
+        self.notes_input.setPlaceholderText("Notes")
+        self.notes_input.setStyleSheet('''
+            QLineEdit {
+                border: none;
+                background: white;
+                color: #8E8E93;
+                font-size: 12px;
+                padding: 0px;
+            }
+        ''')
+        self.notes_input.returnPressed.connect(save_task)
+        self.notes_input.escape_pressed.connect(cancel_task)
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addWidget(circle, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(self.title_input)
+        text_layout = QVBoxLayout()
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setSpacing(2)
+        text_layout.addWidget(self.title_input)
+        text_layout.addWidget(self.notes_input)
+        layout.addLayout(text_layout)
 
 class TaskRow(QWidget):
     def __init__(self, task, current_tab, main_window):

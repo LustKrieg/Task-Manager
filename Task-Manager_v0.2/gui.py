@@ -260,7 +260,8 @@ class MainWindow(QMainWindow):
         if not title:
             return
 
-        self.service.add_task(title)
+        notes = new_task_row.notes_input.text().strip()
+        self.service.add_task(title, notes)
         self.cancel_new_task()
         self.refresh_tasks()
 
