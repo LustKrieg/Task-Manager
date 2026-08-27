@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QTextEdit, QSizePolicy
+from PyQt6.QtWidgets import QTextEdit, QSizePolicy, QFrame
 from PyQt6.QtCore import Qt, QTimer, QEvent, QObject
 from PyQt6.QtGui import QShortcut, QKeySequence, QTextCursor
 from PyQt6 import sip
@@ -9,8 +9,17 @@ class AutoResizeTextEdit(QTextEdit):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setViewportMargins(0, 0, 0, 0)
         self.document().setDocumentMargin(0)
         self.document().contentsChanged.connect(self.update_height)
+        self.verticalScrollBar().rangeChanged.connect(self._disable_vertical_scroll)
+
+    def _disable_vertical_scroll(self, minimum, maximum):
+        if maximum:
+            self.verticalScrollBar().setRange(minimum, minimum)
+        self.verticalScrollBar().setValue(0)
 
     def update_height(self):
         width = self.viewport().width()
@@ -20,7 +29,17 @@ class AutoResizeTextEdit(QTextEdit):
 
         self.document().setTextWidth(width)
         document_height = self.document().documentLayout().documentSize().height()
-        self.setFixedHeight(max(int(document_height), self.fontMetrics().lineSpacing()))
+        # Leave room for QTextEdit's viewport so the document never scrolls
+        # internally when the last line is only fractionally taller.
+        document_height = int(document_height + 0.99) + 2
+        self.setFixedHeight(max(document_height, self.fontMetrics().lineSpacing() + 2))
+        self._disable_vertical_scroll(0, self.verticalScrollBar().maximum())
+        update_container_height = getattr(self, "_update_container_height", None)
+        if update_container_height is not None:
+            QTimer.singleShot(0, update_container_height)
+
+    def wheelEvent(self, event):
+        event.ignore()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -40,11 +59,12 @@ class TaskEditor:
         left_column = title_label.parent()
         left_layout = left_column.layout()
 
-        left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         left_layout.setSpacing(0)
 
         # --- Title Entry ---
         edit = AutoResizeTextEdit()
+        edit._update_container_height = self.main_window.task_list.update_container_height
         edit.setPlainText(current_title)
 
         edit.setMinimumWidth(0)
@@ -62,6 +82,7 @@ class TaskEditor:
 
         # --- Notes entry ---
         notes_entry = AutoResizeTextEdit()
+        notes_entry._update_container_height = self.main_window.task_list.update_container_height
         notes_entry.setPlaceholderText("Notes")
 
         notes_entry.setMinimumWidth(0)
@@ -144,7 +165,7 @@ class TaskEditor:
 
             # --- Restore Title ---
             try:
-                left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
                 left_layout.update()
                 left_column.update()
             except RuntimeError:

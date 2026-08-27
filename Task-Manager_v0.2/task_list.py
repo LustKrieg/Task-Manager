@@ -46,6 +46,14 @@ class TaskList:
             separator.setStyleSheet("background-color: #D1D1D6;")
             self.task_layout.addWidget(separator)
 
+        self.update_container_height()
+
+    def update_container_height(self):
+        self.task_layout.activate()
+        container = self.task_layout.parentWidget()
+        if container is not None:
+            container.setFixedHeight(max(self.task_layout.sizeHint().height(), 1))
+
     def clear_task_list(self):
         for i in reversed(range(self.task_layout.count())):
             widget = self.task_layout.itemAt(i).widget()
