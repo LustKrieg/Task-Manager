@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QScrollArea, QMenu
+    QScrollArea, QMenu, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
@@ -21,6 +21,10 @@ class TaskScrollArea(QScrollArea):
         super().resizeEvent(event)
         if self.widget() is not None:
             self.widget().setFixedWidth(self.viewport().width())
+
+    def set_content_height(self, height):
+        self.setMaximumHeight(max(height, 1))
+        self.updateGeometry()
 
 
 class MainWindow(QMainWindow):
@@ -122,6 +126,7 @@ class MainWindow(QMainWindow):
         # --- Scroll Area for Tasks ---
         scroll = TaskScrollArea()
         scroll.setWidgetResizable(False)
+        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet("""
             QScrollArea {
@@ -155,6 +160,7 @@ class MainWindow(QMainWindow):
 
         scroll.setWidget(self.task_container)
         scroll.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.task_scroll_area = scroll
         content_layout.addWidget(scroll)
 
         # --- Add sidebar and content to main layout ---

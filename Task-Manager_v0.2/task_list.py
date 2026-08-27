@@ -37,14 +37,15 @@ class TaskList:
         return row
 
     def display_tasks(self, tasks):
-        for task in tasks:
+        for index, task in enumerate(tasks):
             row = self.create_task_row(task)
             self.task_layout.addWidget(row)
 
-            separator = QWidget()
-            separator.setFixedHeight(1)
-            separator.setStyleSheet("background-color: #D1D1D6;")
-            self.task_layout.addWidget(separator)
+            if index < len(tasks) - 1:
+                separator = QWidget()
+                separator.setFixedHeight(1)
+                separator.setStyleSheet("background-color: #D1D1D6;")
+                self.task_layout.addWidget(separator)
 
         QTimer.singleShot(0, self.update_container_height)
 
@@ -52,7 +53,9 @@ class TaskList:
         self.task_layout.activate()
         container = self.task_layout.parentWidget()
         if container is not None:
-            container.setFixedHeight(max(self.task_layout.sizeHint().height(), 1))
+            content_height = max(self.task_layout.sizeHint().height(), 1)
+            container.setFixedHeight(content_height)
+            self.main_window.task_scroll_area.set_content_height(content_height)
 
     def clear_task_list(self):
         container = self.task_layout.parentWidget()
