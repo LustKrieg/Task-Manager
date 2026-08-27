@@ -59,7 +59,6 @@ class MainWindow(QMainWindow):
         self.title_label = QLabel("Active")
         self.title_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         self.title_label.setFixedHeight(30)
-#        content_layout.addWidget(self.title_label)
 
         # --- Top Bar: Add "+" Button
         top_bar = QHBoxLayout()
@@ -157,11 +156,13 @@ class MainWindow(QMainWindow):
         self.refresh_tasks()
 
     def refresh_tasks(self):
+        scroll_value = self.task_scroll_area.verticalScrollBar().value()
         self.cancel_new_task()
         self.task_editor.close_current_edit(True, skip_refresh=True)
         self.task_list.clear_task_list()
         tasks = self.task_list.get_visible_tasks()
         self.task_list.display_tasks(tasks)
+        QTimer.singleShot(0,lambda: self.task_scroll_area.verticalScrollBar().setValue(scroll_value))
 
     def complete_task(self, task_id: int):
         self.service.complete_task(task_id)
