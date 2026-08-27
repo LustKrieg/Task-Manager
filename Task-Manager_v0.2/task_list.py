@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget, QSizePolicy
 from PyQt6.QtCore import Qt, QTimer
 from task_row import NewTaskRow, TaskRow
 
@@ -54,6 +54,16 @@ class TaskList:
             self.main_window.new_task_row.title_input.setFocus()
             return
 
+        container = self.task_layout.parentWidget()
+        previous_height = container.height() if container is not None else 0
+        if container is not None:
+            container.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Minimum,
+            )
+            container.setMinimumHeight(0)
+            container.setMaximumHeight(16777215)
+
         new_task_row = NewTaskRow(
             self.main_window.save_new_task,
             self.main_window.cancel_new_task,
@@ -65,6 +75,13 @@ class TaskList:
         separator.setStyleSheet("background-color: #D1D1D6;")
         self.main_window.new_task_separator = separator
         self.task_layout.insertWidget(1, separator)
+        if container is not None:
+            container.setMinimumHeight(
+                previous_height
+                + new_task_row.sizeHint().height()
+                + separator.height()
+                + (self.task_layout.spacing() * 2)
+            )
         QTimer.singleShot(0, self.main_window.focus_new_task_row)
         QTimer.singleShot(0, self.update_container_height)
 
@@ -72,8 +89,9 @@ class TaskList:
         self.task_layout.activate()
         container = self.task_layout.parentWidget()
         if container is not None:
-            content_height = max(self.task_layout.sizeHint().height(), 1)
-            container.setFixedHeight(content_height)
+            container.setMinimumHeight(0)
+            container.setMaximumHeight(16777215)
+            container.setMinimumHeight(max(self.task_layout.sizeHint().height(), 1))
 
     def clear_task_list(self):
         container = self.task_layout.parentWidget()
