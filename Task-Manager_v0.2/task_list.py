@@ -37,15 +37,14 @@ class TaskList:
         return row
 
     def display_tasks(self, tasks):
-        for index, task in enumerate(tasks):
+        for task in tasks:
             row = self.create_task_row(task)
             self.task_layout.addWidget(row)
 
-            if index < len(tasks) - 1:
-                separator = QWidget()
-                separator.setFixedHeight(1)
-                separator.setStyleSheet("background-color: #D1D1D6;")
-                self.task_layout.addWidget(separator)
+            separator = QWidget()
+            separator.setFixedHeight(1)
+            separator.setStyleSheet("background-color: #D1D1D6;")
+            self.task_layout.addWidget(separator)
 
         QTimer.singleShot(0, self.update_container_height)
 
