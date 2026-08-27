@@ -263,7 +263,7 @@ class TaskRow(QWidget):
         self.left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.left_layout = QVBoxLayout(self.left_column)
-        self.left_layout.setContentsMargins(0, 0, 0, 0)
+        self.left_layout.setContentsMargins(0, 0, 34, 0)
         self.left_layout.setSpacing(2)
 
         self.left_layout.addWidget(self.title_label)
