@@ -113,12 +113,32 @@ class TaskEditor:
         editing_row = left_column.parentWidget()
         editing_height = left_layout.sizeHint().height()
         left_column.setMinimumHeight(editing_height)
+        left_column.setMaximumHeight(editing_height)
         if editing_row is not None:
             editing_row.setMinimumHeight(editing_height)
+            editing_row.setMaximumHeight(editing_height)
+
+        def update_editing_row_height():
+            left_layout.activate()
+            height = left_layout.sizeHint().height()
+            left_column.setMinimumHeight(height)
+            left_column.setMaximumHeight(height)
+            if editing_row is not None:
+                editing_row.setMinimumHeight(height)
+                editing_row.setMaximumHeight(height)
+            self.main_window.task_list.update_container_height()
+
+        edit.document().contentsChanged.connect(
+            lambda: QTimer.singleShot(0, update_editing_row_height)
+        )
+        notes_entry.document().contentsChanged.connect(
+            lambda: QTimer.singleShot(0, update_editing_row_height)
+        )
 
         # Recalculate the height
         QTimer.singleShot(0, edit.update_height)
         QTimer.singleShot(0, notes_entry.update_height)
+        QTimer.singleShot(0, update_editing_row_height)
         QTimer.singleShot(0, self.main_window.task_list.update_container_height)
 
         # --- Set focus based on clicked field ---
@@ -169,9 +189,11 @@ class TaskEditor:
             try:
                 left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
                 left_column.setMinimumHeight(0)
+                left_column.setMaximumHeight(16777215)
                 editing_row = left_column.parentWidget()
                 if editing_row is not None:
                     editing_row.setMinimumHeight(0)
+                    editing_row.setMaximumHeight(16777215)
                 left_layout.update()
                 left_column.update()
             except RuntimeError:
