@@ -16,17 +16,6 @@ from task_list import TaskList
 from task_row import TaskRow
 
 
-class TaskScrollArea(QScrollArea):
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if self.widget() is not None:
-            self.widget().setFixedWidth(self.viewport().width())
-
-    def set_content_height(self, height):
-        self.setMaximumHeight(max(height, 1))
-        self.updateGeometry()
-
-
 class MainWindow(QMainWindow):
     def __init__(self, service: TaskService):
         super().__init__()
@@ -102,8 +91,8 @@ class MainWindow(QMainWindow):
         content_layout.addLayout(top_bar)
 
         # --- Scroll Area for Tasks ---
-        scroll = TaskScrollArea()
-        scroll.setWidgetResizable(False)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
         scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet("""

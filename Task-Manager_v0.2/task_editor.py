@@ -56,7 +56,7 @@ class TaskEditor:
         left_column = title_label.parent()
         left_layout = left_column.layout()
 
-        left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         left_layout.setSpacing(0)
 
         # --- Title Entry ---
@@ -109,10 +109,17 @@ class TaskEditor:
         title_label.hide()
         left_layout.insertWidget(0, edit)
         left_layout.insertWidget(1, notes_entry)
+        left_layout.activate()
+        editing_row = left_column.parentWidget()
+        editing_height = left_layout.sizeHint().height()
+        left_column.setMinimumHeight(editing_height)
+        if editing_row is not None:
+            editing_row.setMinimumHeight(editing_height)
 
         # Recalculate the height
         QTimer.singleShot(0, edit.update_height)
         QTimer.singleShot(0, notes_entry.update_height)
+        QTimer.singleShot(0, self.main_window.task_list.update_container_height)
 
         # --- Set focus based on clicked field ---
         if focus_on == "title":
@@ -161,6 +168,10 @@ class TaskEditor:
             # --- Restore Title ---
             try:
                 left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+                left_column.setMinimumHeight(0)
+                editing_row = left_column.parentWidget()
+                if editing_row is not None:
+                    editing_row.setMinimumHeight(0)
                 left_layout.update()
                 left_column.update()
             except RuntimeError:

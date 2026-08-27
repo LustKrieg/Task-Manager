@@ -74,7 +74,6 @@ class TaskList:
         if container is not None:
             content_height = max(self.task_layout.sizeHint().height(), 1)
             container.setFixedHeight(content_height)
-            self.main_window.task_scroll_area.set_content_height(content_height)
 
     def clear_task_list(self):
         container = self.task_layout.parentWidget()
