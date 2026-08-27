@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy, 
-    QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit)
+    QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
+    QLineEdit)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QTextOption
 
@@ -18,6 +19,46 @@ class CircleButton(QPushButton):
             self.released_state.emit()
 
         super().mouseReleaseEvent(event)
+
+
+class NewTaskInput(QLineEdit):
+    escape_pressed = pyqtSignal()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.escape_pressed.emit()
+            return
+        super().keyPressEvent(event)
+
+
+class NewTaskRow(QWidget):
+    def __init__(self, save_task, cancel_task):
+        super().__init__()
+        self.setObjectName("newTaskRow")
+
+        circle = QLabel("○")
+        circle.setFixedSize(26, 26)
+        circle.setStyleSheet("color: #8E8E93; font-size: 19px;")
+
+        self.title_input = NewTaskInput()
+        self.title_input.setPlaceholderText("New Reminder")
+        self.title_input.setStyleSheet('''
+            QLineEdit {
+                border: none;
+                background: white;
+                color: black;
+                font-size: 15px;
+                padding: 0px;
+            }
+        ''')
+        self.title_input.returnPressed.connect(save_task)
+        self.title_input.escape_pressed.connect(cancel_task)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addWidget(circle, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.title_input)
 
 class TaskRow(QWidget):
     def __init__(self, task, current_tab, main_window):

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, QTimer
-from task_row import TaskRow
+from task_row import NewTaskRow, TaskRow
 
 class TaskList:
     def __init__(self, main_window, task_layout):
@@ -47,6 +47,25 @@ class TaskList:
                 separator.setStyleSheet("background-color: #D1D1D6;")
                 self.task_layout.addWidget(separator)
 
+        QTimer.singleShot(0, self.update_container_height)
+
+    def add_new_task_row(self):
+        if hasattr(self.main_window, "new_task_row"):
+            self.main_window.new_task_row.title_input.setFocus()
+            return
+
+        new_task_row = NewTaskRow(
+            self.main_window.save_new_task,
+            self.main_window.cancel_new_task,
+        )
+        self.main_window.new_task_row = new_task_row
+        self.task_layout.insertWidget(0, new_task_row)
+        separator = QWidget()
+        separator.setFixedHeight(1)
+        separator.setStyleSheet("background-color: #D1D1D6;")
+        self.main_window.new_task_separator = separator
+        self.task_layout.insertWidget(1, separator)
+        QTimer.singleShot(0, self.main_window.focus_new_task_row)
         QTimer.singleShot(0, self.update_container_height)
 
     def update_container_height(self):

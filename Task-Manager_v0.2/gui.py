@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
-    QHBoxLayout, QLineEdit, QPushButton, QLabel,
+    QHBoxLayout, QPushButton, QLabel,
     QScrollArea, QMenu, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QTimer
@@ -99,30 +99,6 @@ class MainWindow(QMainWindow):
 
         content_layout.addLayout(top_bar)
 
-        # --- Add Task Row ---
-        self.task_input = QLineEdit()
-        self.task_input.setPlaceholderText("New Reminder")
-        self.task_input.setStyleSheet('''
-            QLineEdit {
-                border: none;
-                background: white;
-                color: black;
-                font-size: 15px;
-                padding: 10px 0px;
-            }
-            QLineEdit:focus {
-                border: none;
-            }
-        ''')
-
-        self.task_input.returnPressed.connect(self.add_task)
-        content_layout.addWidget(self.task_input)
-
-        entry_separator = QWidget()
-        entry_separator.setFixedHeight(1)
-        entry_separator.setStyleSheet("background-color: #D1D1D6;")
-        content_layout.addWidget(entry_separator)
-
         # --- Scroll Area for Tasks ---
         scroll = TaskScrollArea()
         scroll.setWidgetResizable(False)
@@ -174,11 +150,7 @@ class MainWindow(QMainWindow):
         self.setFocus()
 
     def add_task(self):
-        title = self.task_input.text().strip()
-        if title:
-            self.service.add_task(title)
-            self.task_input.clear()
-            self.refresh_tasks()
+        self.save_new_task()
 
     def switch_tab(self, tab_name: str):
         for tab, name in [(self.active_tab, "active"), 
@@ -194,6 +166,7 @@ class MainWindow(QMainWindow):
         self.refresh_tasks()
 
     def refresh_tasks(self):
+        self.cancel_new_task()
         self.task_editor.close_current_edit(True, skip_refresh=True)
         self.task_list.clear_task_list()
         tasks = self.task_list.get_visible_tasks()
@@ -273,8 +246,43 @@ class MainWindow(QMainWindow):
         self.refresh_tasks()
 
     def add_task_from_button(self):
-        self.task_input.setFocus()
-        self.task_input.selectAll()
+        if self.current_tab == "active":
+            self.task_list.add_new_task_row()
+
+    def save_new_task(self):
+        new_task_row = getattr(self, "new_task_row", None)
+        if new_task_row is None:
+            return
+
+        title = new_task_row.title_input.text().strip()
+        if not title:
+            return
+
+        self.service.add_task(title)
+        self.cancel_new_task()
+        self.refresh_tasks()
+
+    def cancel_new_task(self):
+        new_task_row = getattr(self, "new_task_row", None)
+        if new_task_row is None:
+            return
+
+        new_task_separator = getattr(self, "new_task_separator", None)
+        if new_task_separator is not None:
+            self.task_layout.removeWidget(new_task_separator)
+            new_task_separator.setParent(None)
+            new_task_separator.deleteLater()
+            del self.new_task_separator
+        self.task_layout.removeWidget(new_task_row)
+        new_task_row.setParent(None)
+        new_task_row.deleteLater()
+        del self.new_task_row
+        self.task_list.update_container_height()
+
+    def focus_new_task_row(self):
+        new_task_row = getattr(self, "new_task_row", None)
+        if new_task_row is not None:
+            new_task_row.title_input.setFocus()
 
     def on_search_changed(self, text):
         self.search_text = text.strip().lower()

@@ -187,7 +187,7 @@ class TaskEditor:
                         notes_text.hide()
 
             self._current_edit_finish = None
-            self.main_window.task_input.clearFocus()
+            self.main_window.setFocus()
 
             if not skip_refresh:
                 self.main_window.refresh_tasks()
