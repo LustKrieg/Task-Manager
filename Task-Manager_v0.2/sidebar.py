@@ -4,6 +4,16 @@ from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from styles import SIDEBAR_BUTTON_STYLE
 
 
+class SearchLineEdit(QLineEdit):
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.clear()
+            self.clearFocus()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+
 class Sidebar(QWidget):
     def __init__(self):
         super().__init__()
@@ -20,7 +30,7 @@ class Sidebar(QWidget):
         layout.setContentsMargins(8, 20, 8, 20)
         layout.setSpacing(0)
 
-        self.search_input = QLineEdit()
+        self.search_input = SearchLineEdit()
         search_icon = QIcon.fromTheme("edit-find")
         if search_icon.isNull():
             pixmap = QPixmap(16, 16)
@@ -32,10 +42,8 @@ class Sidebar(QWidget):
             painter.drawLine(9, 9, 14, 14)
             painter.end()
             search_icon = QIcon(pixmap)
-        self.search_input.addAction(
-            search_icon,
-            QLineEdit.ActionPosition.LeadingPosition,
-        )
+
+        self.search_input.addAction(search_icon, QLineEdit.ActionPosition.LeadingPosition)
         self.search_input.setPlaceholderText("Search")
         self.search_input.setStyleSheet("""
             QLineEdit {
