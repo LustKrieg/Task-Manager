@@ -93,6 +93,7 @@ class MainWindow(QMainWindow):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet("""
             QScrollArea {
@@ -254,6 +255,7 @@ class MainWindow(QMainWindow):
         self.service.add_task(title, notes)
         self.cancel_new_task()
         self.refresh_tasks()
+        self.task_list.add_new_task_row()
 
     def cancel_new_task(self):
         new_task_row = getattr(self, "new_task_row", None)
@@ -271,6 +273,7 @@ class MainWindow(QMainWindow):
         new_task_row.deleteLater()
         del self.new_task_row
         self.task_list.update_container_height()
+        self.task_scroll_area.setFocus()
 
     def focus_new_task_row(self):
         new_task_row = getattr(self, "new_task_row", None)
