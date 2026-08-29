@@ -8,7 +8,7 @@ SIDEBAR_BUTTON_STYLE = ('''
     background: transparent;
     text-align: left;
     border-radius: 8px;
-    margin: 2px 0px;
+    margin: 0px;
     }
     QPushButton:hover {
     background: #E5E5EA;

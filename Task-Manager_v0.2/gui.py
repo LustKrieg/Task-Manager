@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
         self.current_tab = "active"
         self.service = service
         self.setWindowTitle("Task Manager")
-        self.setGeometry(100, 100, 750, 500)
+        self.setGeometry(100, 100, 790, 500)
         self.pending_timers = {}
         self.search_text = ""
         self.task_editor = TaskEditor(self)

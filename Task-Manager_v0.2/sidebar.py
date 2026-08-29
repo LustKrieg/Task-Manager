@@ -18,7 +18,7 @@ class Sidebar(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setFixedWidth(200)
+        self.setFixedWidth(280)
         self.setStyleSheet("""
             QWidget {
                 background: #F5F5F7;
@@ -27,8 +27,8 @@ class Sidebar(QWidget):
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 20, 8, 20)
-        layout.setSpacing(0)
+        layout.setContentsMargins(10, 20, 10, 20)
+        layout.setSpacing(5)
 
         self.search_input = SearchLineEdit()
         search_icon = QIcon.fromTheme("edit-find")
@@ -71,6 +71,7 @@ class Sidebar(QWidget):
             self.completed_tab,
             self.trash_tab,
         ):
+            button.setFixedSize(130, 60)
             button.setFlat(True)
             button.setStyleSheet(SIDEBAR_BUTTON_STYLE)
 
