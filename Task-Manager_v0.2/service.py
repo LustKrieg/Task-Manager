@@ -1,6 +1,7 @@
 from database import TaskDatabase
 from models import Task
 from typing import List
+from datetime import datetime
 
 class TaskService:
     def __init__(self, db: TaskDatabase):
@@ -42,6 +43,15 @@ class TaskService:
         if not new_title.strip():
             return
         self.db.update_task_title(task_id, new_title.strip())
+
+    def update_due_at(self, task_id: int, due_at: datetime | None) -> None:
+        self.db.update_due_at(task_id, due_at)
+
+    def update_priority(self, task_id: int, priority: int) -> None:
+        self.db.update_priority(task_id, priority)
+
+    def update_flagged(self, task_id: int, flagged: bool) -> None:
+        self.db.update_flagged(task_id, flagged)
 
     def empty_trash(self):
         self.db.empty_trash()
