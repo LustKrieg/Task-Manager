@@ -251,6 +251,7 @@ class TaskRow(QWidget):
                 color: #3A3A3C;
             }
         ''')
+        self.info_button.clicked.connect(self.open_details_dialog)
         self.info_button.hide()
 
     def build_layout(self):
@@ -290,6 +291,9 @@ class TaskRow(QWidget):
                 self.task.title,
                 focus_on="notes"
             )
+
+    def open_details_dialog(self):
+        print("info clicked")
 
     def enterEvent(self, event):
         self.info_button.show()
