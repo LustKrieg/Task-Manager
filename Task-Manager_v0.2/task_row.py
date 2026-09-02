@@ -344,7 +344,6 @@ class TaskRow(QWidget):
             self.details_popup.close()
             self.details_popup.deleteLater()
             self.details_popup = None
-            return
 
         info_rect = self.info_button.rect()
         button_top_left = self.info_button.mapToGlobal(info_rect.topLeft())
