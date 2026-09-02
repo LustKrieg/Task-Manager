@@ -1,9 +1,56 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy, 
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
     QLineEdit)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QTextOption
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF
+from PyQt6.QtGui import QFont, QTextOption, QPainter, QPainterPath, QColor, QPolygonF
 
+class DetailsPopup(QWidget):
+    def __init__(self, parent=None, arrow_side="left"):
+        super().__init__(parent)
+        self.arrow_side = arrow_side
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setWindowFlags(
+            Qt.WindowType.Popup |
+            Qt.WindowType.FramelessWindowHint
+        )
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        body_color = QColor(244, 244, 244, 220)
+        border_color = QColor("#D1D1D6")
+
+        path = QPainterPath()
+        path.addRoundedRect(
+            0, 0,
+            self.width(),
+            self.height(),
+            18, 18
+        )
+
+        painter.setBrush(body_color)
+        painter.setPen(border_color)
+        painter.drawPath(path)
+
+        triangle_color = QColor(244, 244, 244, 220)
+
+        if self.arrow_side == "left":
+            triangle = QPolygonF([
+                QPointF(0, 30),
+                QPointF(-10, 38),
+                QPointF(0, 46)
+            ])
+        else:
+            triangle = QPolygonF([
+                QPointF(self.width(), 30),
+                QPointF(self.width() + 10, 38),
+                QPointF(self.width(), 46)
+            ])
+
+        painter.setBrush(triangle_color)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawPolygon(triangle)
 class CircleButton(QPushButton):
     pressed_state = pyqtSignal()
     released_state = pyqtSignal()
@@ -293,36 +340,32 @@ class TaskRow(QWidget):
             )
 
     def open_details_dialog(self):
-        popup = QWidget(self)
+        if hasattr(self, "details_popup") and self.details_popup is not None:
+            self.details_popup.close()
+            self.details_popup.deleteLater()
+            self.details_popup = None
+            return
+
+        info_rect = self.info_button.rect()
+        button_top_left = self.info_button.mapToGlobal(info_rect.topLeft())
+        button_top_right = self.info_button.mapToGlobal(info_rect.topRight())
+
+        main_rect = self.main_window.frameGeometry()
+        gap = 10
+
+        popup = DetailsPopup(self)
         self.details_popup = popup
+        popup.resize(260, 170)
 
-        popup.setWindowFlags(
-            Qt.WindowType.Popup |
-            Qt.WindowType.FramelessWindowHint
-        )
-        popup.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        popup.resize(260, 150)
-
-        popup.setStyleSheet('''
-            QWidget {
-            background: white;
-            border: 1px solid #D1D1D6;
-            border-radius: 14px;
-            }
-        ''')
-
-        button_top_right = self.info_button.mapToGlobal(self.info_button.rect().topRight())
-        button_top_left = self.info_button.mapToGlobal(self.info_button.rect().topLeft())
-        self.window_rect = self.main_window.frameGeometry()
-        gap = 8
-
-        x = button_top_right.x() + gap
-
-        if x + popup.width() > self.window_rect.right():
+        if button_top_right.x() + popup.width() + gap <= main_rect.right():
+            popup.arrow_side = "left"
+            x = button_top_right.x() + gap
+        else:
+            popup.arrow_side = "right"
             x = button_top_left.x() - popup.width() - gap
 
-        y = button_top_left.y()
-        y = max(self.window_rect.top() + gap, min(y, self.window_rect.bottom() - popup.height() - gap))
+        y = button_top_left.y() - 6
+        y = max(main_rect.top() + 12, min(y, main_rect.bottom() - popup.height() - 12))
 
         popup.move(x, y)
         popup.show()
