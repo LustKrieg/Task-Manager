@@ -293,7 +293,39 @@ class TaskRow(QWidget):
             )
 
     def open_details_dialog(self):
-        print("info clicked")
+        popup = QWidget(self)
+        self.details_popup = popup
+
+        popup.setWindowFlags(
+            Qt.WindowType.Popup |
+            Qt.WindowType.FramelessWindowHint
+        )
+        popup.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        popup.resize(260, 150)
+
+        popup.setStyleSheet('''
+            QWidget {
+            background: white;
+            border: 1px solid #D1D1D6;
+            border-radius: 14px;
+            }
+        ''')
+
+        button_top_right = self.info_button.mapToGlobal(self.info_button.rect().topRight())
+        button_top_left = self.info_button.mapToGlobal(self.info_button.rect().topLeft())
+        self.window_rect = self.main_window.frameGeometry()
+        gap = 8
+
+        x = button_top_right.x() + gap
+
+        if x + popup.width() > self.window_rect.right():
+            x = button_top_left.x() - popup.width() - gap
+
+        y = button_top_left.y()
+        y = max(self.window_rect.top() + gap, min(y, self.window_rect.bottom() - popup.height() - gap))
+
+        popup.move(x, y)
+        popup.show()
 
     def enterEvent(self, event):
         self.info_button.show()
