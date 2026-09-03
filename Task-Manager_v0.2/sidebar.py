@@ -62,9 +62,10 @@ class Sidebar(QWidget):
 
         layout.addWidget(self.search_input)
 
-        self.active_tab = QPushButton("Active")
-        self.completed_tab = QPushButton("Completed")
-        self.trash_tab = QPushButton("Recently Deleted")
+        self.active_tab = QPushButton("○  Active")
+        self.completed_tab = QPushButton("✓  Completed")
+        self.trash_tab = QPushButton("▥  Recently Deleted")
+        self.trash_tab.setObjectName("trashTab")
 
         for button in (
             self.active_tab,
@@ -74,6 +75,12 @@ class Sidebar(QWidget):
             button.setFixedSize(130, 60)
             button.setFlat(True)
             button.setStyleSheet(SIDEBAR_BUTTON_STYLE)
+
+        self.trash_tab.setStyleSheet(SIDEBAR_BUTTON_STYLE + '''
+            QPushButton#trashTab {
+                font-size: 14px;
+            }
+        ''')
 
         self.active_tab.setProperty("active", True)
         self.active_tab.style().polish(self.active_tab)
