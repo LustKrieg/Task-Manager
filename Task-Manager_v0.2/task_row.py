@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QWidget, QSizePolicy, 
+from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
     QLineEdit)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF
@@ -17,9 +17,8 @@ class DetailsPopup(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        body_color = QColor(244, 244, 244, 220)
-        border_color = QColor("#D1D1D6")
+        body_color = QColor(244, 246, 250, 218)
+        border_color = QColor(255, 255, 255, 165)
 
         path = QPainterPath()
         path.addRoundedRect(
@@ -33,7 +32,7 @@ class DetailsPopup(QWidget):
         painter.setPen(border_color)
         painter.drawPath(path)
 
-        triangle_color = QColor(244, 244, 244, 220)
+        triangle_color = body_color
 
         if self.arrow_side == "left":
             triangle = QPolygonF([
