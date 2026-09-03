@@ -64,7 +64,7 @@ class Sidebar(QWidget):
 
         self.active_tab = QPushButton("○  Active")
         self.completed_tab = QPushButton("✓  Completed")
-        self.trash_tab = QPushButton("▥  Recently Deleted")
+        self.trash_tab = QPushButton("🗑︎  Recently Deleted")
         self.trash_tab.setObjectName("trashTab")
 
         for button in (
