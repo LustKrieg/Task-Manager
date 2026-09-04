@@ -21,11 +21,15 @@ class DetailsPopup(QWidget):
         border_color = QColor(255, 255, 255, 165)
 
         path = QPainterPath()
+        body_left = 10 if self.arrow_side == "left" else 0
+        body_width = self.width() - 10
         path.addRoundedRect(
-            0, 0,
-            self.width(),
+            body_left,
+            0,
+            body_width,
             self.height(),
-            18, 18
+            18,
+            18
         )
 
         painter.setBrush(body_color)
@@ -36,20 +40,29 @@ class DetailsPopup(QWidget):
 
         if self.arrow_side == "left":
             triangle = QPolygonF([
-                QPointF(0, 30),
-                QPointF(-10, 38),
-                QPointF(0, 46)
+                QPointF(9, 30),
+                QPointF(0, 38),
+                QPointF(9, 46)
             ])
         else:
             triangle = QPolygonF([
-                QPointF(self.width(), 30),
-                QPointF(self.width() + 10, 38),
-                QPointF(self.width(), 46)
+                QPointF(self.width() - 9, 30),
+                QPointF(self.width(), 38),
+                QPointF(self.width() - 9, 46)
             ])
 
         painter.setBrush(triangle_color)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawPolygon(triangle)
+
+    def closeEvent(self, event):
+        owner = self.parentWidget()
+        if owner is not None and getattr(owner, "details_popup", None) is self:
+            owner.details_popup = None
+            owner.info_button.hide()
+        super().closeEvent(event)
+
+
 class CircleButton(QPushButton):
     pressed_state = pyqtSignal()
     released_state = pyqtSignal()
@@ -362,9 +375,13 @@ class TaskRow(QWidget):
             popup.arrow_side = "right"
             x = button_top_left.x() - popup.width() - gap
 
-        y = button_top_left.y() - 6
+        button_center_y = self.info_button.mapToGlobal(
+            info_rect.center()
+        ).y()
+        y = button_center_y - 38
         y = max(main_rect.top() + 12, min(y, main_rect.bottom() - popup.height() - 12))
 
+        self.info_button.show()
         popup.move(x, y)
         popup.show()
 
@@ -373,7 +390,8 @@ class TaskRow(QWidget):
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        self.info_button.hide()
+        if not hasattr(self, "details_popup") or self.details_popup is None:
+            self.info_button.hide()
         super().leaveEvent(event)
 
     # Position ⓘ at top-right of the row, vertically centered with first line
