@@ -17,8 +17,8 @@ class DetailsPopup(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        body_color = QColor(242, 244, 248, 235)
-        border_color = QColor(200, 200, 210, 180)
+        body_color = QColor(238, 240, 245, 252)
+        border_color = QColor(180, 182, 190, 200)
 
         if self.arrow_side == "left":
             body_left = 10
