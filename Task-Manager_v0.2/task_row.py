@@ -17,12 +17,17 @@ class DetailsPopup(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        body_color = QColor(242, 244, 248, 245)
-        border_color = QColor(255, 255, 255, 200)
+        body_color = QColor(242, 244, 248, 235)
+        border_color = QColor(200, 200, 210, 180)
+
+        if self.arrow_side == "left":
+            body_left = 10
+            body_width = self.width() - 11 # leaving 1 px so right cornres render
+        else:
+            body_left = 0
+            body_width = self.width() - 11 # same here
 
         path = QPainterPath()
-        body_left = 10 if self.arrow_side == "left" else 0
-        body_width = self.width() - 10
         path.addRoundedRect(body_left, 0, body_width, self.height(), 18, 18)
 
         painter.setBrush(body_color)
@@ -33,18 +38,18 @@ class DetailsPopup(QWidget):
 
         if self.arrow_side == "left":
             triangle = QPolygonF([
-                QPointF(9, 30),
-                QPointF(0, 38),
-                QPointF(9, 46)
+                QPointF(10, 32),
+                QPointF(0, 40),
+                QPointF(10, 48)
             ])
         else:
             triangle = QPolygonF([
-                QPointF(self.width() - 9, 30),
-                QPointF(self.width(), 38),
-                QPointF(self.width() - 9, 46)
+                QPointF(self.width() - 10, 32),
+                QPointF(self.width(), 40),
+                QPointF(self.width() - 10, 48)
             ])
 
-        painter.setBrush(triangle_color)
+        painter.setBrush(body_color)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawPolygon(triangle)
 
@@ -353,20 +358,32 @@ class TaskRow(QWidget):
         info_rect = self.info_button.rect()
         button_top_left = self.info_button.mapToGlobal(info_rect.topLeft())
         button_top_right = self.info_button.mapToGlobal(info_rect.topRight())
-
         main_rect = self.main_window.frameGeometry()
         gap = 10
 
-        popup = DetailsPopup(self)
+        # Arrow side determined first so the geomentry should be correct
+        popup_width = 280
+        if button_top_right.x() + popup_width + gap <= main_rect.right():
+            arrow_side = "left"
+            x = button_top_right.x() + gap
+        else:
+            arrow_side = "right"
+            x = button_top_left.x() - popup_width - gap
+
+        popup = DetailsPopup(self, arrow_side=arrow_side)
         self.details_popup = popup
         popup.resize(280, 10)
 
         # ── Content Layout ────────────────────────────────────────────────────
-        body_left = 10 if True else 0 # determined after arrow_side is set
         content = QWidget(popup)
+        content.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        content.setStyleSheet("background: transparent;")
         content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(16, 14, 16, 14)
-        content_layout.setSpacing(6)
+        if arrow_side == "left":
+            content_layout.setContentsMargins(16, 14, 16, 14)
+        else:
+            content_layout.setContentsMargins(12, 12, 10, 12)
+            content_layout.setSpacing(6)
 
         # Title
         title_lbl = QLabel(self.task.title)
@@ -379,9 +396,15 @@ class TaskRow(QWidget):
                 background: transparent;
             }
         ''')
-
         content_layout.addWidget(title_lbl)
 
+        # Divider
+        div1 = QWidget()
+        div1.setFixedHeight(1)
+        div1.setStyleSheet("background: rgba(0,0,0,0.12); border: none;")
+        content_layout.addWidget(div1)
+
+        # Notes
         notes = self.task.notes or ""
         if notes.strip():
             notes_lbl = QLabel(notes)
@@ -395,37 +418,34 @@ class TaskRow(QWidget):
             ''')
             content_layout.addWidget(notes_lbl)
 
-            divider2 = QWidget()
-            divider2.setFixedHeight(1)
-            divider2.setStyleSheet("background: rgba(0,0,0,0.1);")
-            content_layout.addWidget(divider2)
+            div2 = QWidget()
+            div2.setFixedHeight(1)
+            div2.setStyleSheet("background: rgba(0,0,0,0.12); border: none;")
+            content_layout.addWidget(div2)
 
-            date_str = self.task.created_at.strftime("Created %b %d, %Y · %I:%M %p")
-            date_lbl = QLabel(date_str)
-            date_lbl.setStyleSheet('''
-                QLabel {
-                    color: #8E8E93;
-                    font-size: 11px;
-                    background: transparent;
-                }
-            ''')
-            content_layout.addWidget(date_lbl)
+        # Created date -- always shown
+        date_str = self.task.created_at.strftime("Created %b %d, %Y · %I:%M %p")
+        date_lbl = QLabel(date_str)
+        date_lbl.setStyleSheet('''
+            QLabel {
+                color: #8E8E93;
+                font-size: 11px;
+                background: transparent;
+            }
+        ''')
+        content_layout.addWidget(date_lbl)
 
-            content.adjustSize()
-            popup.resize(280, content.sizeHint().height())
-            content.setGeometry(10, 0, 270, popup.height())
-            
-        # ── Positioning ────────────────────────────────────────────────────
-        if button_top_right.x() + popup.width() + gap <= main_rect.right():
-            popup.arrow_side = "left"
-            x = button_top_right.x() + gap
-        else:
-            popup.arrow_side = "right"
-            x = button_top_left.x() - popup.width() - gap
+        # Size popup to content
+        content.adjustSize()
+        final_height = content.sizeHint().height()
+        popup.resize(popup_width, final_height)
 
-        button_center_y = self.info_button.mapToGlobal(
-            info_rect.center()
-        ).y()
+        content_x = 10 if arrow_side == "left" else 0
+        content_width = popup_width - 10
+        content.setGeometry(content_x, 0, content_width, final_height)
+
+        # Vertical position
+        button_center_y = self.info_button.mapToGlobal(info_rect.center()).y()
         y = button_center_y - 38
         y = max(main_rect.top() + 12, min(y, main_rect.bottom() - popup.height() - 12))
 
