@@ -17,20 +17,13 @@ class DetailsPopup(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        body_color = QColor(244, 246, 250, 218)
-        border_color = QColor(255, 255, 255, 165)
+        body_color = QColor(242, 244, 248, 245)
+        border_color = QColor(255, 255, 255, 200)
 
         path = QPainterPath()
         body_left = 10 if self.arrow_side == "left" else 0
         body_width = self.width() - 10
-        path.addRoundedRect(
-            body_left,
-            0,
-            body_width,
-            self.height(),
-            18,
-            18
-        )
+        path.addRoundedRect(body_left, 0, body_width, self.height(), 18, 18)
 
         painter.setBrush(body_color)
         painter.setPen(border_color)
@@ -366,8 +359,63 @@ class TaskRow(QWidget):
 
         popup = DetailsPopup(self)
         self.details_popup = popup
-        popup.resize(260, 170)
+        popup.resize(280, 10)
 
+        # ── Content Layout ────────────────────────────────────────────────────
+        body_left = 10 if True else 0 # determined after arrow_side is set
+        content = QWidget(popup)
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(16, 14, 16, 14)
+        content_layout.setSpacing(6)
+
+        # Title
+        title_lbl = QLabel(self.task.title)
+        title_lbl.setWordWrap(True)
+        title_lbl.setStyleSheet('''
+            QLabel {
+                color: #1C1C1E;
+                font-size: 14px;
+                font-weight: 600;
+                background: transparent;
+            }
+        ''')
+
+        content_layout.addWidget(title_lbl)
+
+        notes = self.task.notes or ""
+        if notes.strip():
+            notes_lbl = QLabel(notes)
+            notes_lbl.setWordWrap(True)
+            notes_lbl.setStyleSheet('''
+                QLabel {
+                color: #3A3A3C;
+                font-size: 13px;
+                background: transparent;
+                }
+            ''')
+            content_layout.addWidget(notes_lbl)
+
+            divider2 = QWidget()
+            divider2.setFixedHeight(1)
+            divider2.setStyleSheet("background: rgba(0,0,0,0.1);")
+            content_layout.addWidget(divider2)
+
+            date_str = self.task.created_at.strftime("Created %b %d, %Y · %I:%M %p")
+            date_lbl = QLabel(date_str)
+            date_lbl.setStyleSheet('''
+                QLabel {
+                    color: #8E8E93;
+                    font-size: 11px;
+                    background: transparent;
+                }
+            ''')
+            content_layout.addWidget(date_lbl)
+
+            content.adjustSize()
+            popup.resize(280, content.sizeHint().height())
+            content.setGeometry(10, 0, 270, popup.height())
+            
+        # ── Positioning ────────────────────────────────────────────────────
         if button_top_right.x() + popup.width() + gap <= main_rect.right():
             popup.arrow_side = "left"
             x = button_top_right.x() + gap
