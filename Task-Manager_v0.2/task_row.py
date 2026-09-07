@@ -22,10 +22,10 @@ class DetailsPopup(QWidget):
 
         if self.arrow_side == "left":
             body_left = 10
-            body_width = self.width() - 11 # leaving 1 px so right cornres render
+            body_width = self.width() - 12 # leaving 1 px so right cornres render
         else:
             body_left = 0
-            body_width = self.width() - 11 # same here
+            body_width = self.width() - 12 # same here
 
         path = QPainterPath()
         path.addRoundedRect(body_left, 0, body_width, self.height(), 18, 18)
@@ -362,7 +362,7 @@ class TaskRow(QWidget):
         gap = 10
 
         # Arrow side determined first so the geomentry should be correct
-        popup_width = 280
+        popup_width = 310
         if button_top_right.x() + popup_width + gap <= main_rect.right():
             arrow_side = "left"
             x = button_top_right.x() + gap
@@ -372,24 +372,24 @@ class TaskRow(QWidget):
 
         popup = DetailsPopup(self, arrow_side=arrow_side)
         self.details_popup = popup
-        popup.resize(280, 10)
+        popup.resize(popup_width, 10)
 
         # ── Content Layout ────────────────────────────────────────────────────
         content = QWidget(popup)
         content.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         content.setStyleSheet("background: transparent;")
         content_layout = QVBoxLayout(content)
-        if arrow_side == "left":
-            content_layout.setContentsMargins(16, 14, 16, 14)
-        else:
-            content_layout.setContentsMargins(12, 12, 10, 12)
-            content_layout.setSpacing(6)
+        content_layout.setContentsMargins(16, 14, 16, 14)
+        content_layout.setSpacing(6)
 
         # Title
-        title_lbl = QLabel(self.task.title)
-        title_lbl.setWordWrap(True)
+        title_lbl = QTextEdit(self.task.title)
+        title_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        title_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        title_lbl.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
+        title_lbl.setMaximumHeight(100)
         title_lbl.setStyleSheet('''
-            QLabel {
+            QTextEdit {
                 color: #1C1C1E;
                 font-size: 14px;
                 font-weight: 600;
@@ -407,10 +407,13 @@ class TaskRow(QWidget):
         # Notes
         notes = self.task.notes or ""
         if notes.strip():
-            notes_lbl = QLabel(notes)
-            notes_lbl.setWordWrap(True)
+            notes_lbl = QTextEdit(notes)
+            notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            notes_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            notes_lbl.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
+            notes_lbl.setMaximumHeight(120)
             notes_lbl.setStyleSheet('''
-                QLabel {
+                QTextEdit {
                 color: #3A3A3C;
                 font-size: 13px;
                 background: transparent;
@@ -436,13 +439,15 @@ class TaskRow(QWidget):
         content_layout.addWidget(date_lbl)
 
         # Size popup to content
-        content.adjustSize()
-        final_height = content.sizeHint().height()
-        popup.resize(popup_width, final_height)
-
         content_x = 10 if arrow_side == "left" else 0
-        content_width = popup_width - 10
+        content_right_margin = 12
+        content_width = popup_width - content_x - content_right_margin
+        content.setFixedWidth(content_width)
+        content.adjustSize()
+        content_layout.activate()
+        final_height = content.sizeHint().height()
         content.setGeometry(content_x, 0, content_width, final_height)
+        popup.resize(popup_width, final_height)
 
         # Vertical position
         button_center_y = self.info_button.mapToGlobal(info_rect.center()).y()
