@@ -384,7 +384,7 @@ class TaskRow(QWidget):
 
         # Title
         title_lbl = QTextEdit(self.task.title)
-        title_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        title_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         title_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         title_lbl.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
         title_lbl.setMaximumHeight(100)
@@ -406,9 +406,10 @@ class TaskRow(QWidget):
 
         # Notes
         notes = self.task.notes or ""
+        notes_lbl = None
         if notes.strip():
             notes_lbl = QTextEdit(notes)
-            notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             notes_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             notes_lbl.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
             notes_lbl.setMaximumHeight(120)
@@ -443,6 +444,26 @@ class TaskRow(QWidget):
         content_right_margin = 12
         content_width = popup_width - content_x - content_right_margin
         content.setFixedWidth(content_width)
+
+        text_edits = [(title_lbl, 100)]
+        if notes_lbl is not None:
+            text_edits.append((notes_lbl, 120))
+
+        text_width = content_width - 32
+        for text_edit, maximum_height in text_edits:
+            text_edit.setContentsMargins(0, 0, 0, 0)
+            text_edit.document().setDocumentMargin(0)
+            text_edit.document().setTextWidth(text_width)
+            document_height = text_edit.document().documentLayout().documentSize().height()
+            natural_height = max(
+                text_edit.fontMetrics().lineSpacing() + 4,
+                int(document_height + 0.99) + 4,
+            )
+            editor_height = min(natural_height, maximum_height)
+            text_edit.setFixedHeight(editor_height)
+            if natural_height > maximum_height:
+                text_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
         content.adjustSize()
         content_layout.activate()
         final_height = content.sizeHint().height()
