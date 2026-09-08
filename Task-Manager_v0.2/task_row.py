@@ -88,6 +88,28 @@ class NewTaskInput(QLineEdit):
         super().keyPressEvent(event)
 
 
+class ScrollOnDemandTextEdit(QTextEdit):
+    def __init__(self, text="", parent=None):
+        super().__init__(text, parent)
+        self.scrollbar_hide_timer = QTimer(self)
+        self.scrollbar_hide_timer.setSingleShot(True)
+        self.scrollbar_hide_timer.timeout.connect(self.hide_scrollbar)
+        self.verticalScrollBar().hide()
+
+    def show_scrollbar(self):
+        if self.verticalScrollBar().maximum() > 0:
+            self.verticalScrollBar().show()
+            self.scrollbar_hide_timer.start(350)
+
+    def hide_scrollbar(self):
+        self.verticalScrollBar().hide()
+
+    def wheelEvent(self, event):
+        self.show_scrollbar()
+        super().wheelEvent(event)
+        self.scrollbar_hide_timer.start(350)
+
+
 class NewTaskRow(QWidget):
     def __init__(self, save_task, cancel_task):
         super().__init__()
@@ -383,8 +405,8 @@ class TaskRow(QWidget):
         content_layout.setSpacing(6)
 
         # Title
-        title_lbl = QTextEdit(self.task.title)
-        title_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        title_lbl = ScrollOnDemandTextEdit(self.task.title)
+        title_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         title_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         title_lbl.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
         title_lbl.setMaximumHeight(100)
@@ -408,8 +430,8 @@ class TaskRow(QWidget):
         notes = self.task.notes or ""
         notes_lbl = None
         if notes.strip():
-            notes_lbl = QTextEdit(notes)
-            notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            notes_lbl = ScrollOnDemandTextEdit(notes)
+            notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             notes_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             notes_lbl.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
             notes_lbl.setMaximumHeight(120)
@@ -461,8 +483,6 @@ class TaskRow(QWidget):
             )
             editor_height = min(natural_height, maximum_height)
             text_edit.setFixedHeight(editor_height)
-            if natural_height > maximum_height:
-                text_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
         content.adjustSize()
         content_layout.activate()
@@ -478,6 +498,9 @@ class TaskRow(QWidget):
         self.info_button.show()
         popup.move(x, y)
         popup.show()
+        QTimer.singleShot(0, title_lbl.hide_scrollbar)
+        if notes_lbl is not None:
+            QTimer.singleShot(0, notes_lbl.hide_scrollbar)
 
     def enterEvent(self, event):
         self.info_button.show()
