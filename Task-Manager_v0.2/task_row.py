@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QLineEdit)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF
 from PyQt6.QtGui import QFont, QTextOption, QPainter, QPainterPath, QColor, QPolygonF
+from task_editor import AutoResizeTextEdit
 
 class DetailsPopup(QWidget):
     def __init__(self, parent=None, arrow_side="left"):
@@ -94,6 +95,9 @@ class ScrollOnDemandTextEdit(QTextEdit):
         self.scrollbar_hide_timer = QTimer(self)
         self.scrollbar_hide_timer.setSingleShot(True)
         self.scrollbar_hide_timer.timeout.connect(self.hide_scrollbar)
+        self.setAcceptRichText(False)
+        self.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        self.setWordWrapMode(QTextOption.WrapMode.WordWrap)
         self.verticalScrollBar().hide()
 
     def show_scrollbar(self):
@@ -405,17 +409,19 @@ class TaskRow(QWidget):
         content_layout.setSpacing(6)
 
         # Title
-        title_lbl = ScrollOnDemandTextEdit(self.task.title)
-        title_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        title_lbl = AutoResizeTextEdit()
+        title_lbl.setPlainText(self.task.title)
+        title_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         title_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        title_lbl.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
-        title_lbl.setMaximumHeight(100)
+        title_lbl.setMinimumHeight(24)
+        title_lbl.setMaximumHeight(120)
         title_lbl.setStyleSheet('''
             QTextEdit {
                 color: #1C1C1E;
                 font-size: 14px;
                 font-weight: 600;
                 background: transparent;
+                border: none;
             }
         ''')
         content_layout.addWidget(title_lbl)
@@ -430,16 +436,18 @@ class TaskRow(QWidget):
         notes = self.task.notes or ""
         notes_lbl = None
         if notes.strip():
-            notes_lbl = ScrollOnDemandTextEdit(notes)
-            notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            notes_lbl = AutoResizeTextEdit()
+            notes_lbl.setPlainText(notes)
+            notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             notes_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            notes_lbl.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
-            notes_lbl.setMaximumHeight(120)
+            notes_lbl.setMinimumHeight(24)
+            notes_lbl.setMaximumHeight(160)
             notes_lbl.setStyleSheet('''
                 QTextEdit {
                 color: #3A3A3C;
                 font-size: 13px;
                 background: transparent;
+                border: none;
                 }
             ''')
             content_layout.addWidget(notes_lbl)
@@ -467,22 +475,13 @@ class TaskRow(QWidget):
         content_width = popup_width - content_x - content_right_margin
         content.setFixedWidth(content_width)
 
-        text_edits = [(title_lbl, 100)]
+        text_edits = [(title_lbl, 120)]
         if notes_lbl is not None:
-            text_edits.append((notes_lbl, 120))
+            text_edits.append((notes_lbl, 160))
 
-        text_width = content_width - 32
         for text_edit, maximum_height in text_edits:
-            text_edit.setContentsMargins(0, 0, 0, 0)
-            text_edit.document().setDocumentMargin(0)
-            text_edit.document().setTextWidth(text_width)
-            document_height = text_edit.document().documentLayout().documentSize().height()
-            natural_height = max(
-                text_edit.fontMetrics().lineSpacing() + 4,
-                int(document_height + 0.99) + 4,
-            )
-            editor_height = min(natural_height, maximum_height)
-            text_edit.setFixedHeight(editor_height)
+            text_edit.setFixedWidth(content_width - 32)
+            text_edit.update_height()
 
         content.adjustSize()
         content_layout.activate()

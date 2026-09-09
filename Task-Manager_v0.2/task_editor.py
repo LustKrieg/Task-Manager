@@ -16,6 +16,13 @@ class AutoResizeTextEdit(QTextEdit):
         self.document().contentsChanged.connect(self.update_height)
         self.verticalScrollBar().rangeChanged.connect(self._disable_vertical_scroll)
 
+    def show_scrollbar(self):
+        if self.verticalScrollBar().maximum() > 0:
+            self.verticalScrollBar().show()
+
+    def hide_scrollbar(self):
+        self.verticalScrollBar().hide()
+
     def _disable_vertical_scroll(self, minimum, maximum):
         if maximum:
             self.verticalScrollBar().setRange(minimum, minimum)
