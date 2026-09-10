@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
-    QLineEdit)
+    QLineEdit, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF
 from PyQt6.QtGui import QFont, QTextOption, QPainter, QPainterPath, QColor, QPolygonF
 from task_editor import AutoResizeTextEdit
@@ -112,6 +112,42 @@ class ScrollOnDemandTextEdit(QTextEdit):
         self.show_scrollbar()
         super().wheelEvent(event)
         self.scrollbar_hide_timer.start(350)
+
+
+class PopupTextEdit(ScrollOnDemandTextEdit):
+    def __init__(self, text="", parent=None, maximum_height=120):
+        super().__init__("", parent)
+        self.setPlainText(text)
+        self.maximum_height = maximum_height
+        self.setFrameStyle(QFrame.Shape.NoFrame)
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setViewportMargins(0, 0, 0, 0)
+        self.document().setDocumentMargin(0)
+        self.document().contentsChanged.connect(self.update_height)
+
+    def update_height(self):
+        width = self.viewport().width()
+        if width <= 0:
+            return
+
+        self.document().setTextWidth(width)
+        document_height = self.document().documentLayout().documentSize().height()
+        natural_height = max(
+            self.fontMetrics().lineSpacing() + 2,
+            int(document_height + 0.99) + 2,
+        )
+
+        if natural_height > self.maximum_height:
+            self.setFixedHeight(self.maximum_height)
+            self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        else:
+            self.setFixedHeight(natural_height)
+            self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            self.verticalScrollBar().hide()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self.update_height)
 
 
 class NewTaskRow(QWidget):
@@ -409,12 +445,9 @@ class TaskRow(QWidget):
         content_layout.setSpacing(6)
 
         # Title
-        title_lbl = AutoResizeTextEdit()
-        title_lbl.setPlainText(self.task.title)
+        title_lbl = PopupTextEdit(self.task.title, maximum_height=90)
         title_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         title_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        title_lbl.setMinimumHeight(24)
-        title_lbl.setMaximumHeight(120)
         title_lbl.setStyleSheet('''
             QTextEdit {
                 color: #1C1C1E;
@@ -436,12 +469,9 @@ class TaskRow(QWidget):
         notes = self.task.notes or ""
         notes_lbl = None
         if notes.strip():
-            notes_lbl = AutoResizeTextEdit()
-            notes_lbl.setPlainText(notes)
+            notes_lbl = PopupTextEdit(notes, maximum_height=80)
             notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             notes_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            notes_lbl.setMinimumHeight(24)
-            notes_lbl.setMaximumHeight(160)
             notes_lbl.setStyleSheet('''
                 QTextEdit {
                 color: #3A3A3C;
@@ -475,11 +505,11 @@ class TaskRow(QWidget):
         content_width = popup_width - content_x - content_right_margin
         content.setFixedWidth(content_width)
 
-        text_edits = [(title_lbl, 120)]
+        text_edits = [title_lbl]
         if notes_lbl is not None:
-            text_edits.append((notes_lbl, 160))
+            text_edits.append(notes_lbl)
 
-        for text_edit, maximum_height in text_edits:
+        for text_edit in text_edits:
             text_edit.setFixedWidth(content_width - 32)
             text_edit.update_height()
 
