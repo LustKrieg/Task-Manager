@@ -3,12 +3,13 @@ from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QLineEdit, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF
 from PyQt6.QtGui import QFont, QTextOption, QPainter, QPainterPath, QColor, QPolygonF
-from task_editor import AutoResizeTextEdit
 
 class DetailsPopup(QWidget):
-    def __init__(self, parent=None, arrow_side="left"):
+    def __init__(self, parent=None, arrow_side="left", save_callback=None):
         super().__init__(parent)
         self.arrow_side = arrow_side
+        self.save_callback = save_callback
+        self._saved = False
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setWindowFlags(
             Qt.WindowType.Popup |
@@ -55,6 +56,10 @@ class DetailsPopup(QWidget):
         painter.drawPolygon(triangle)
 
     def closeEvent(self, event):
+        if not self._saved and self.save_callback is not None:
+            self._saved = True
+            self.save_callback()
+
         owner = self.parentWidget()
         if owner is not None and getattr(owner, "details_popup", None) is self:
             owner.details_popup = None
@@ -467,25 +472,24 @@ class TaskRow(QWidget):
 
         # Notes
         notes = self.task.notes or ""
-        notes_lbl = None
-        if notes.strip():
-            notes_lbl = PopupTextEdit(notes, maximum_height=80)
-            notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            notes_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            notes_lbl.setStyleSheet('''
-                QTextEdit {
-                color: #3A3A3C;
-                font-size: 13px;
-                background: transparent;
-                border: none;
-                }
-            ''')
-            content_layout.addWidget(notes_lbl)
+        notes_lbl = PopupTextEdit(notes, maximum_height=80)
+        notes_lbl.setPlaceholderText("Notes")
+        notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        notes_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        notes_lbl.setStyleSheet('''
+            QTextEdit {
+            color: #3A3A3C;
+            font-size: 13px;
+            background: transparent;
+            border: none;
+            }
+        ''')
+        content_layout.addWidget(notes_lbl)
 
-            div2 = QWidget()
-            div2.setFixedHeight(1)
-            div2.setStyleSheet("background: rgba(0,0,0,0.12); border: none;")
-            content_layout.addWidget(div2)
+        div2 = QWidget()
+        div2.setFixedHeight(1)
+        div2.setStyleSheet("background: rgba(0,0,0,0.12); border: none;")
+        content_layout.addWidget(div2)
 
         # Created date -- always shown
         date_str = self.task.created_at.strftime("Created %b %d, %Y · %I:%M %p")
@@ -509,9 +513,45 @@ class TaskRow(QWidget):
         if notes_lbl is not None:
             text_edits.append(notes_lbl)
 
-        for text_edit in text_edits:
-            text_edit.setFixedWidth(content_width - 32)
-            text_edit.update_height()
+        def save_popup_details():
+            new_title = title_lbl.toPlainText().strip()
+            new_notes = notes_lbl.toPlainText().strip()
+
+            if new_title and new_title != self.task.title:
+                self.main_window.service.update_task_title(self.task.id, new_title)
+                self.task.title = new_title
+                self.title_label.setText(new_title)
+
+            if new_notes != (self.task.notes or ""):
+                self.main_window.service.update_notes(self.task.id, new_notes)
+                self.task.notes = new_notes
+                self.notes_label.setText(new_notes)
+                self.notes_label.setVisible(bool(new_notes))
+
+            self.main_window.task_list.update_container_height()
+
+        popup.save_callback = save_popup_details
+
+        def resize_popup():
+            for text_edit in text_edits:
+                text_edit.setFixedWidth(content_width - 32)
+                text_edit.update_height()
+
+            content_layout.activate()
+            content.adjustSize()
+            final_height = content.sizeHint().height()
+            content.setGeometry(content_x, 0, content_width, final_height)
+            popup.resize(popup_width, final_height)
+
+            button_center_y = self.info_button.mapToGlobal(info_rect.center()).y()
+            popup_y = button_center_y - 38
+            popup_y = max(
+                main_rect.top() + 12,
+                min(popup_y, main_rect.bottom() - popup.height() - 12),
+            )
+            popup.move(x, popup_y)
+
+        resize_popup()
 
         content.adjustSize()
         content_layout.activate()
@@ -527,9 +567,10 @@ class TaskRow(QWidget):
         self.info_button.show()
         popup.move(x, y)
         popup.show()
+        title_lbl.textChanged.connect(lambda: QTimer.singleShot(0, resize_popup))
+        notes_lbl.textChanged.connect(lambda: QTimer.singleShot(0, resize_popup))
         QTimer.singleShot(0, title_lbl.hide_scrollbar)
-        if notes_lbl is not None:
-            QTimer.singleShot(0, notes_lbl.hide_scrollbar)
+        QTimer.singleShot(0, notes_lbl.hide_scrollbar)
 
     def enterEvent(self, event):
         self.info_button.show()
