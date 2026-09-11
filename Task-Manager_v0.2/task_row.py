@@ -400,6 +400,9 @@ class TaskRow(QWidget):
         self.info_button.raise_()
 
     def open_title_edit(self, event):
+        if self.current_tab != "active":
+            return
+
         if event.button() == Qt.MouseButton.LeftButton:
             self.main_window.start_editing(
                 self.title_label,
@@ -408,6 +411,9 @@ class TaskRow(QWidget):
             )
 
     def open_notes_edit(self, event):
+        if self.current_tab != "active":
+            return
+
         if event.button() == Qt.MouseButton.LeftButton:
             self.main_window.start_editing(
                 self.title_label,
@@ -451,6 +457,7 @@ class TaskRow(QWidget):
 
         # Title
         title_lbl = PopupTextEdit(self.task.title, maximum_height=90)
+        title_lbl.setReadOnly(self.current_tab != "active")
         title_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         title_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         title_lbl.setStyleSheet('''
@@ -474,6 +481,7 @@ class TaskRow(QWidget):
         notes = self.task.notes or ""
         notes_lbl = PopupTextEdit(notes, maximum_height=80)
         notes_lbl.setPlaceholderText("Notes")
+        notes_lbl.setReadOnly(self.current_tab != "active")
         notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         notes_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         notes_lbl.setStyleSheet('''
