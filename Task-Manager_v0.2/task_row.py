@@ -561,19 +561,7 @@ class TaskRow(QWidget):
 
         resize_popup()
 
-        content.adjustSize()
-        content_layout.activate()
-        final_height = content.sizeHint().height()
-        content.setGeometry(content_x, 0, content_width, final_height)
-        popup.resize(popup_width, final_height)
-
-        # Vertical position
-        button_center_y = self.info_button.mapToGlobal(info_rect.center()).y()
-        y = button_center_y - 38
-        y = max(main_rect.top() + 12, min(y, main_rect.bottom() - popup.height() - 12))
-
         self.info_button.show()
-        popup.move(x, y)
         popup.show()
         title_lbl.textChanged.connect(lambda: QTimer.singleShot(0, resize_popup))
         notes_lbl.textChanged.connect(lambda: QTimer.singleShot(0, resize_popup))
