@@ -343,9 +343,6 @@ class TaskRow(QWidget):
         if self.current_tab == "active":
             self.title_label.mousePressEvent = self.open_title_edit
 
-        self.date_label = QLabel(self.task.created_at.strftime("%b %d, %I:%M %p"))
-        self.date_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
-
         # Always create notes label
         self.notes_label = QLabel(self.task.notes or "")
         self.notes_label.setStyleSheet("color: #8E8E93; font-size: 12px;")
@@ -393,7 +390,6 @@ class TaskRow(QWidget):
 
         self.left_layout.addWidget(self.title_label)
         self.left_layout.addWidget(self.notes_label)
-        self.left_layout.addWidget(self.date_label)
 
         self.row_layout.addWidget(self.circle,alignment=Qt.AlignmentFlag.AlignTop)
         self.row_layout.addWidget(self.left_column, 1)
