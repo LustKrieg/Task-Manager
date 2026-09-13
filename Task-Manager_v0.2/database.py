@@ -1,11 +1,15 @@
 import sqlite3
+from pathlib import Path
 from typing import List
 from models import Task
 from datetime import datetime
 
 class TaskDatabase:
     def __init__(self, db_path: str = "tasks.db"):
-        self.db_path = db_path
+        database_path = Path(db_path)
+        if not database_path.is_absolute():
+            database_path = Path(__file__).resolve().parent / database_path
+        self.db_path = str(database_path)
 
     def _connect(self):
         return sqlite3.connect(self.db_path)
