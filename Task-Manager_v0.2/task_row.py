@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
-    QLineEdit, QFrame)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF
+    QLineEdit, QFrame, QCalendarWidget, QTimeEdit)
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QTime
 from PyQt6.QtGui import QFont, QTextOption, QPainter, QPainterPath, QColor, QPolygonF
 
 class DetailsPopup(QWidget):
@@ -153,6 +153,45 @@ class PopupTextEdit(ScrollOnDemandTextEdit):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         QTimer.singleShot(0, self.update_height)
+
+class CalendarPopup(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        self.setFixedSize(280, 320)
+        self.calendar = QCalendarWidget(self)
+        self.calendar.setGeometry(10, 10, 260, 240)
+
+        self.time_edit = QTimeEdit(self)
+        self.time_edit.setTime(QTime.currentTime())
+        self.time_edit.setGeometry(10, 260, 260, 35)
+
+
+class DateTimeControl(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.date_button = QToolButton()
+        self.date_button.setText("Add Date")
+        self.date_button.clicked.connect(self.open_calendar_popup)
+
+        self.time_button = QToolButton()
+        self.time_button.setText("Add Time")
+        self.time_button.clicked.connect(self.open_calendar_popup)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        layout.addWidget(self.date_button)
+        layout.addWidget(self.time_button)
+
+    def open_calendar_popup(self):
+        self.calendar_popup = CalendarPopup(self)
+        button = self.sender()
+        popup_position = button.mapToGlobal(button.rect().bottomLeft())
+        self.calendar_popup.move(popup_position)
+        self.calendar_popup.show()
 
 
 class NewTaskRow(QWidget):
