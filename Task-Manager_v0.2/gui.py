@@ -252,7 +252,11 @@ class MainWindow(QMainWindow):
             return
 
         notes = new_task_row.notes_input.text().strip()
-        self.service.add_task(title, notes)
+        self.service.add_task(
+            title,
+            notes,
+            new_task_row.date_time_control.get_due_datetime(),
+        )
         self.cancel_new_task()
         self.refresh_tasks()
         self.task_list.add_new_task_row()

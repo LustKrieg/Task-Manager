@@ -64,7 +64,7 @@ class TaskDatabase:
 
             return [self._to_task(row) for row in rows]
         
-    def add_task(self, title: str, notes: str = "") -> bool:
+    def add_task(self, title: str, notes: str = "", due_at: datetime | None = None) -> bool:
         if not title.strip():
             return False
     
@@ -72,9 +72,10 @@ class TaskDatabase:
 
         with self._connect() as conn:
             conn.execute('''
-                INSERT INTO tasks (title, notes, completed, deleted, created_at, modified_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (title.strip(), notes, 0, 0, created_at, created_at))
+                                INSERT INTO tasks (title, notes, due_at, completed, deleted, created_at, modified_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ''', (title.strip(), notes, due_at.isoformat() if due_at else None,
+                                    0, 0, created_at, created_at))
             return True
 
     def mark_complete(self, task_id: int) -> None:

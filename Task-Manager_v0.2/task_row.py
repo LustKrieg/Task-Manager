@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
-    QLineEdit, QFrame, QCalendarWidget, QTimeEdit)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QTime
+    QLineEdit, QFrame, QCalendarWidget, QTimeEdit, QAbstractItemView)
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QTime, QDateTime, QEvent
 from PyQt6.QtGui import QFont, QTextOption, QPainter, QPainterPath, QColor, QPolygonF
 
 class DetailsPopup(QWidget):
@@ -155,22 +155,123 @@ class PopupTextEdit(ScrollOnDemandTextEdit):
         QTimer.singleShot(0, self.update_height)
 
 class CalendarPopup(QWidget):
-    def __init__(self, parent=None):
+    date_changed = pyqtSignal(object)
+
+    def __init__(self, parent=None, value=None):
         super().__init__(parent)
 
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
-        self.setFixedSize(280, 320)
+        self.setFixedSize(246, 252)
+        self.setStyleSheet("background: white; color: #2C2C2E;")
         self.calendar = QCalendarWidget(self)
-        self.calendar.setGeometry(10, 10, 260, 240)
+        self.calendar.setGeometry(6, 6, 234, 240)
+        self.calendar.setFirstDayOfWeek(Qt.DayOfWeek.Monday)
+        self.calendar.setGridVisible(False)
+        self.calendar_view = self.calendar.findChild(QAbstractItemView)
+        if self.calendar_view is not None:
+            self.calendar_view.viewport().installEventFilter(self)
+        self.calendar.setStyleSheet('''
+            QCalendarWidget {
+                background: white;
+                color: #2C2C2E;
+            }
+            QCalendarWidget QToolButton {
+                color: #2C2C2E;
+                background: white;
+                border: none;
+                font-size: 12px;
+                font-weight: 600;
+                padding: 2px;
+            }
+            QCalendarWidget QToolButton:hover {
+                background: #F2F2F7;
+                border-radius: 5px;
+            }
+            QCalendarWidget QMenu {
+                color: #2C2C2E;
+                background: white;
+            }
+            QCalendarWidget QWidget#qt_calendar_navigationbar {
+                background: white;
+            }
+            QCalendarWidget QAbstractItemView {
+                color: #2C2C2E;
+                background: white;
+                font-size: 11px;
+                selection-background-color: #DDEBFF;
+                selection-color: #147EFB;
+                outline: none;
+            }
+        ''')
+        initial_value = value or QDateTime.currentDateTime()
+        self.calendar.setSelectedDate(initial_value.date())
+        self.calendar.clicked.connect(self.emit_date)
+
+    def eventFilter(self, watched, event):
+        if event.type() in (
+            QEvent.Type.MouseButtonPress,
+            QEvent.Type.MouseButtonRelease,
+        ):
+            if self.calendar_view is None:
+                return super().eventFilter(watched, event)
+
+            index = self.calendar_view.indexAt(event.position().toPoint())
+            if index.isValid():
+                first_day = QDateTime(
+                    self.calendar.yearShown(),
+                    self.calendar.monthShown(),
+                    1,
+                    0,
+                    0,
+                ).date()
+                offset = first_day.dayOfWeek() - 1
+                clicked_date = first_day.addDays(
+                    index.row() * 7 + index.column() - offset
+                )
+                if (
+                    clicked_date.year() != self.calendar.yearShown()
+                    or clicked_date.month() != self.calendar.monthShown()
+                ):
+                    return True
+
+        return super().eventFilter(watched, event)
+
+    def emit_date(self):
+        self.date_changed.emit(self.calendar.selectedDate())
+
+
+class TimePopup(QWidget):
+    time_changed = pyqtSignal(object)
+
+    def __init__(self, parent=None, value=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        self.setFixedSize(152, 58)
+        self.setStyleSheet("background: white; color: #2C2C2E;")
 
         self.time_edit = QTimeEdit(self)
-        self.time_edit.setTime(QTime.currentTime())
-        self.time_edit.setGeometry(10, 260, 260, 35)
+        self.time_edit.setDisplayFormat("h:mm AP")
+        self.time_edit.setTime(value.time() if value else QTime.currentTime())
+        self.time_edit.setGeometry(8, 8, 136, 42)
+        self.time_edit.setStyleSheet('''
+            QTimeEdit {
+                color: #2C2C2E;
+                background: #F2F2F7;
+                border: none;
+                border-radius: 6px;
+                padding: 4px 8px;
+            }
+        ''')
+        self.time_edit.timeChanged.connect(self.time_changed.emit)
 
 
 class DateTimeControl(QWidget):
-    def __init__(self, parent=None):
+    value_changed = pyqtSignal(object)
+
+    def __init__(self, parent=None, value=None):
         super().__init__(parent)
+        self._value = value
+        self.calendar_popup = None
 
         self.date_button = QToolButton()
         self.date_button.setText("Add Date")
@@ -180,18 +281,69 @@ class DateTimeControl(QWidget):
         self.time_button.setText("Add Time")
         self.time_button.clicked.connect(self.open_calendar_popup)
 
+        for button in (self.date_button, self.time_button):
+            button.setFixedHeight(26)
+            button.setStyleSheet('''
+                QToolButton {
+                    border: none;
+                    background: #F2F2F7;
+                    color: #8E8E93;
+                    border-radius: 6px;
+                    padding: 5px 9px;
+                }
+                QToolButton:hover {
+                    background: #E5E5EA;
+                    color: #3A3A3C;
+                }
+            ''')
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(4)
+        layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(self.date_button)
         layout.addWidget(self.time_button)
+        self.update_button_texts()
 
     def open_calendar_popup(self):
-        self.calendar_popup = CalendarPopup(self)
         button = self.sender()
         popup_position = button.mapToGlobal(button.rect().bottomLeft())
-        self.calendar_popup.move(popup_position)
-        self.calendar_popup.show()
+
+        if button is self.date_button:
+            self.calendar_popup = CalendarPopup(self, self._value)
+            self.calendar_popup.date_changed.connect(self.set_due_date)
+            self.calendar_popup.move(popup_position.x() - 4, popup_position.y() + 2)
+            self.calendar_popup.show()
+        else:
+            self.time_popup = TimePopup(self, self._value)
+            self.time_popup.time_changed.connect(self.set_due_time)
+            self.time_popup.move(popup_position.x() - 4, popup_position.y() + 2)
+            self.time_popup.show()
+
+    def set_due_date(self, date):
+        current_time = self._value.time() if self._value else QTime.currentTime()
+        self.set_due_datetime(QDateTime(date, current_time))
+
+    def set_due_time(self, time):
+        current_date = self._value.date() if self._value else QDateTime.currentDateTime().date()
+        self.set_due_datetime(QDateTime(current_date, time))
+
+    def set_due_datetime(self, value):
+        self._value = value.toPyDateTime() if hasattr(value, "toPyDateTime") else value
+        self.update_button_texts()
+        self.value_changed.emit(self._value)
+
+    def update_button_texts(self):
+        if self._value is None:
+            self.date_button.setText("Add Date")
+            self.time_button.setText("Add Time")
+            return
+
+        self.date_button.setText(self._value.strftime("%b %-d"))
+        self.time_button.setText(self._value.strftime("%-I:%M %p"))
+
+    def get_due_datetime(self):
+        return self._value
 
 
 class NewTaskRow(QWidget):
@@ -231,6 +383,8 @@ class NewTaskRow(QWidget):
         self.notes_input.returnPressed.connect(save_task)
         self.notes_input.escape_pressed.connect(cancel_task)
 
+        self.date_time_control = DateTimeControl()
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
@@ -240,6 +394,7 @@ class NewTaskRow(QWidget):
         text_layout.setSpacing(2)
         text_layout.addWidget(self.title_input)
         text_layout.addWidget(self.notes_input)
+        text_layout.addWidget(self.date_time_control)
         layout.addLayout(text_layout)
 
 class TaskRow(QWidget):
@@ -397,6 +552,14 @@ class TaskRow(QWidget):
         if not self.task.notes or not self.task.notes.strip():
             self.notes_label.hide()
 
+        self.due_label = QLabel()
+        self.due_label.setStyleSheet("color: #8E8E93; font-size: 11px;")
+        self.due_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
+        self.update_due_label()
+
         self.info_button = QToolButton(self)
         self.info_button.setText("ⓘ")
         self.info_button.setFixedSize(26, 26)
@@ -429,6 +592,7 @@ class TaskRow(QWidget):
 
         self.left_layout.addWidget(self.title_label)
         self.left_layout.addWidget(self.notes_label)
+        self.left_layout.addWidget(self.due_label)
 
         self.row_layout.addWidget(self.circle,alignment=Qt.AlignmentFlag.AlignTop)
         self.row_layout.addWidget(self.left_column, 1)
@@ -456,6 +620,17 @@ class TaskRow(QWidget):
                 self.task.title,
                 focus_on="notes"
             )
+
+    def update_due_label(self):
+        if self.task.due_at is None:
+            self.due_label.clear()
+            self.due_label.hide()
+            return
+
+        self.due_label.setText(
+            self.task.due_at.strftime("%b %-d, %-I:%M %p")
+        )
+        self.due_label.show()
 
     def open_details_dialog(self):
         if hasattr(self, "details_popup") and self.details_popup is not None:
@@ -529,6 +704,12 @@ class TaskRow(QWidget):
         ''')
         content_layout.addWidget(notes_lbl)
 
+        date_time_control = DateTimeControl(
+            value=self.task.due_at if self.task.due_at is not None else None
+        )
+        date_time_control.setEnabled(self.current_tab == "active")
+        content_layout.addWidget(date_time_control)
+
         div2 = QWidget()
         div2.setFixedHeight(1)
         div2.setStyleSheet("background: rgba(0,0,0,0.12); border: none;")
@@ -559,6 +740,7 @@ class TaskRow(QWidget):
         def save_popup_details():
             new_title = title_lbl.toPlainText().strip()
             new_notes = notes_lbl.toPlainText().strip()
+            new_due_at = date_time_control.get_due_datetime()
 
             if new_title and new_title != self.task.title:
                 self.main_window.service.update_task_title(self.task.id, new_title)
@@ -570,6 +752,11 @@ class TaskRow(QWidget):
                 self.task.notes = new_notes
                 self.notes_label.setText(new_notes)
                 self.notes_label.setVisible(bool(new_notes))
+
+            if new_due_at != self.task.due_at:
+                self.main_window.service.update_due_at(self.task.id, new_due_at)
+                self.task.due_at = new_due_at
+                self.update_due_label()
 
             self.main_window.task_list.update_container_height()
 

@@ -16,10 +16,10 @@ class TaskService:
     def get_deleted_tasks(self) -> List[Task]:
         return self.db.get_deleted()
 
-    def add_task(self, title: str, notes: str = "") -> bool:
+    def add_task(self, title: str, notes: str = "", due_at: datetime | None = None) -> bool:
         if not title.strip():
             return False
-        return self.db.add_task(title.strip(), notes)
+        return self.db.add_task(title.strip(), notes, due_at)
 
     def complete_task(self, task_id: int) -> None:
         self.db.mark_complete(task_id)
