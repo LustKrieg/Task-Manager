@@ -118,6 +118,12 @@ class TaskList:
                 t for t in tasks
                 if self.main_window.search_text in t.title.lower()
                 or self.main_window.search_text in t.notes.lower()
+                or (
+                    t.due_at is not None
+                    and self.main_window.search_text in t.due_at.strftime(
+                        "%b %-d %Y %-I:%M %p"
+                    ).lower()
+                )
             ]
         return tasks
 
