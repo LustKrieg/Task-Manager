@@ -154,6 +154,23 @@ class PopupTextEdit(ScrollOnDemandTextEdit):
         super().resizeEvent(event)
         QTimer.singleShot(0, self.update_height)
 
+class CleanCalendar(QCalendarWidget):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.clicked.connect(self._filter_click)
+
+    def paintCell(self, painter, rect, date):
+        if (date.month() != self.monthShown() or date.year() != self.yearShown()):
+            painter.fillRect(rect, QColor("white"))
+            return
+        super().paintCell(painter, rect, date)
+
+    def _filter_click(self, date):
+        if (date.month() != self.monthShown() or date.year() != self.yearShown()):
+            self.setCurrentPage(self.yearShown(), self.monthShown())
+            return
+        pass
+
 class CalendarPopup(QWidget):
     date_changed = pyqtSignal(object)
 
@@ -163,13 +180,10 @@ class CalendarPopup(QWidget):
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         self.setFixedSize(246, 252)
         self.setStyleSheet("background: white; color: #2C2C2E;")
-        self.calendar = QCalendarWidget(self)
-        self.calendar.setGeometry(6, 6, 234, 240)
+        self.calendar = CleanCalendar(self)
+        self.calendar.setGeometry(6, 6, 246, 252)
         self.calendar.setFirstDayOfWeek(Qt.DayOfWeek.Monday)
         self.calendar.setGridVisible(False)
-        self.calendar_view = self.calendar.findChild(QAbstractItemView)
-        if self.calendar_view is not None:
-            self.calendar_view.viewport().installEventFilter(self)
         self.calendar.setStyleSheet('''
             QCalendarWidget {
                 background: white;
@@ -186,6 +200,18 @@ class CalendarPopup(QWidget):
             QCalendarWidget QToolButton:hover {
                 background: #F2F2F7;
                 border-radius: 5px;
+            }
+            QCalendarWidget QToolButton#qt_calendar_prevmonth,
+            QCalendarWidget QToolButton#qt_calendar_nextmonth {
+                width: 24px;
+                height: 24px;
+                padding: 0px;
+                margin: 0px;
+            }
+            QCalendarWidget QToolButton#qt_calendar_monthbutton,
+            QCalendarWidget QToolButton#qt_calendar_yearbutton {
+                height: 24px;
+                padding: 0px 4px;
             }
             QCalendarWidget QMenu {
                 color: #2C2C2E;
@@ -206,35 +232,6 @@ class CalendarPopup(QWidget):
         initial_value = value or QDateTime.currentDateTime()
         self.calendar.setSelectedDate(initial_value.date())
         self.calendar.clicked.connect(self.emit_date)
-
-    def eventFilter(self, watched, event):
-        if event.type() in (
-            QEvent.Type.MouseButtonPress,
-            QEvent.Type.MouseButtonRelease,
-        ):
-            if self.calendar_view is None:
-                return super().eventFilter(watched, event)
-
-            index = self.calendar_view.indexAt(event.position().toPoint())
-            if index.isValid():
-                first_day = QDateTime(
-                    self.calendar.yearShown(),
-                    self.calendar.monthShown(),
-                    1,
-                    0,
-                    0,
-                ).date()
-                offset = first_day.dayOfWeek() - 1
-                clicked_date = first_day.addDays(
-                    index.row() * 7 + index.column() - offset
-                )
-                if (
-                    clicked_date.year() != self.calendar.yearShown()
-                    or clicked_date.month() != self.calendar.monthShown()
-                ):
-                    return True
-
-        return super().eventFilter(watched, event)
 
     def emit_date(self):
         self.date_changed.emit(self.calendar.selectedDate())
