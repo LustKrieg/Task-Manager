@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
     QLineEdit, QFrame, QCalendarWidget, QTimeEdit, QAbstractItemView)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QTime, QDateTime, QEvent
-from PyQt6.QtGui import QFont, QTextOption, QPainter, QPainterPath, QColor, QPolygonF
+from PyQt6.QtGui import QTextOption, QPainter, QPainterPath, QColor, QPolygonF
 
 class DetailsPopup(QWidget):
     def __init__(self, parent=None, arrow_side="left", save_callback=None):
@@ -35,8 +35,6 @@ class DetailsPopup(QWidget):
         painter.setBrush(body_color)
         painter.setPen(border_color)
         painter.drawPath(path)
-
-        triangle_color = body_color
 
         if self.arrow_side == "left":
             triangle = QPolygonF([
@@ -154,23 +152,6 @@ class PopupTextEdit(ScrollOnDemandTextEdit):
         super().resizeEvent(event)
         QTimer.singleShot(0, self.update_height)
 
-class CleanCalendar(QCalendarWidget):
-    def __init__(self, parent = None):
-        super().__init__(parent)
-        self.clicked.connect(self._filter_click)
-
-    def paintCell(self, painter, rect, date):
-        if (date.month() != self.monthShown() or date.year() != self.yearShown()):
-            painter.fillRect(rect, QColor("white"))
-            return
-        super().paintCell(painter, rect, date)
-
-    def _filter_click(self, date):
-        if (date.month() != self.monthShown() or date.year() != self.yearShown()):
-            self.setCurrentPage(self.yearShown(), self.monthShown())
-            return
-        pass
-
 class CalendarPopup(QWidget):
     date_changed = pyqtSignal(object)
 
@@ -180,7 +161,7 @@ class CalendarPopup(QWidget):
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         self.setFixedSize(246, 252)
         self.setStyleSheet("background: white; color: #2C2C2E;")
-        self.calendar = CleanCalendar(self)
+        self.calendar = QCalendarWidget(self)
         self.calendar.setGeometry(6, 6, 246, 252)
         self.calendar.setFirstDayOfWeek(Qt.DayOfWeek.Monday)
         self.calendar.setGridVisible(False)
