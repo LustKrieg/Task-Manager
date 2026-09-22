@@ -1,8 +1,11 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
-    QLineEdit, QFrame, QCalendarWidget, QTimeEdit, QAbstractItemView)
+    QLineEdit, QFrame, QTimeEdit, QAbstractItemView)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QTime, QDateTime, QEvent
 from PyQt6.QtGui import QTextOption, QPainter, QPainterPath, QColor, QPolygonF
+
+#From other files
+from mini_calendar import MiniCalendar
 
 class DetailsPopup(QWidget):
     def __init__(self, parent=None, arrow_side="left", save_callback=None):
@@ -151,72 +154,27 @@ class PopupTextEdit(ScrollOnDemandTextEdit):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         QTimer.singleShot(0, self.update_height)
-
+        
 class CalendarPopup(QWidget):
     date_changed = pyqtSignal(object)
 
     def __init__(self, parent=None, value=None):
         super().__init__(parent)
-
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
-        self.setFixedSize(246, 252)
-        self.setStyleSheet("background: white; color: #2C2C2E;")
-        self.calendar = QCalendarWidget(self)
-        self.calendar.setGeometry(6, 6, 246, 252)
-        self.calendar.setFirstDayOfWeek(Qt.DayOfWeek.Monday)
-        self.calendar.setGridVisible(False)
-        self.calendar.setStyleSheet('''
-            QCalendarWidget {
-                background: white;
-                color: #2C2C2E;
-            }
-            QCalendarWidget QToolButton {
-                color: #2C2C2E;
-                background: white;
-                border: none;
-                font-size: 12px;
-                font-weight: 600;
-                padding: 2px;
-            }
-            QCalendarWidget QToolButton:hover {
-                background: #F2F2F7;
-                border-radius: 5px;
-            }
-            QCalendarWidget QToolButton#qt_calendar_prevmonth,
-            QCalendarWidget QToolButton#qt_calendar_nextmonth {
-                width: 24px;
-                height: 24px;
-                padding: 0px;
-                margin: 0px;
-            }
-            QCalendarWidget QToolButton#qt_calendar_monthbutton,
-            QCalendarWidget QToolButton#qt_calendar_yearbutton {
-                height: 24px;
-                padding: 0px 4px;
-            }
-            QCalendarWidget QMenu {
-                color: #2C2C2E;
-                background: white;
-            }
-            QCalendarWidget QWidget#qt_calendar_navigationbar {
-                background: white;
-            }
-            QCalendarWidget QAbstractItemView {
-                color: #2C2C2E;
-                background: white;
-                font-size: 11px;
-                selection-background-color: #DDEBFF;
-                selection-color: #147EFB;
-                outline: none;
-            }
-        ''')
-        initial_value = value or QDateTime.currentDateTime()
-        self.calendar.setSelectedDate(initial_value.date())
-        self.calendar.clicked.connect(self.emit_date)
+        self.setStyleSheet("background: white; border-radius: 10px;")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        self.calendar = MiniCalendar(self, value)
+        self.calendar.date_selected.connect(self.date_changed.emit)
+        layout.addWidget(self.calendar)
+
+        self.adjustSize()
 
     def emit_date(self):
         self.date_changed.emit(self.calendar.selectedDate())
-
 
 class TimePopup(QWidget):
     time_changed = pyqtSignal(object)
