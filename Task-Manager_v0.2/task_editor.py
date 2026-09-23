@@ -227,10 +227,10 @@ class TaskEditor:
                 left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
                 left_column.setMinimumHeight(0)
                 left_column.setMaximumHeight(16777215)
-                editing_row = left_column.parentWidget()
-                if editing_row is not None:
-                    editing_row.setMinimumHeight(0)
-                    editing_row.setMaximumHeight(16777215)
+                parent_row = left_column.parentWidget()           # ← renamed
+                if parent_row is not None:
+                    parent_row.setMinimumHeight(0)
+                    parent_row.setMaximumHeight(16777215)
                 left_layout.update()
                 left_column.update()
             except RuntimeError:
