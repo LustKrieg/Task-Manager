@@ -57,7 +57,7 @@ class DayCell(QLabel):
             weight = QFont.Weight.Normal
 
         font = self.font()
-        font.setPointSize(10)                     # was 11 → tighter
+        font.setPointSize(9)                     # was 11 → tighter
         font.setWeight(weight)
         self.setFont(font)
 
@@ -86,15 +86,15 @@ class MiniCalendar(QWidget):
     date_selected = pyqtSignal(QDate)
 
     # ── Tunable sizing (all in px) ────────────────────────────────────
-    CELL_SIZE         = 26
-    WEEKDAY_HEIGHT    = 16
-    NAV_BUTTON_SIZE   = 20
-    OUTER_MARGIN_H    = 8
-    OUTER_MARGIN_V    = 6
+    CELL_SIZE         = 24
+    WEEKDAY_HEIGHT    = 14
+    NAV_BUTTON_SIZE   = 18
+    OUTER_MARGIN_H    = 6
+    OUTER_MARGIN_V    = 4
     HEADER_MARGIN_L   = 4
-    DAY_FONT_SIZE     = 10
-    WEEKDAY_FONT_SIZE = 10
-    MONTH_FONT_SIZE   = 13
+    DAY_FONT_SIZE     = 9
+    WEEKDAY_FONT_SIZE = 9
+    MONTH_FONT_SIZE   = 12
 
     def __init__(self, parent=None, value=None,
                  first_day: Qt.DayOfWeek = Qt.DayOfWeek.Monday):
