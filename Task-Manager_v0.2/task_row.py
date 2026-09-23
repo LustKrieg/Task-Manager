@@ -161,7 +161,7 @@ class CalendarPopup(QWidget):
     def __init__(self, parent=None, value=None):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
-        self.setStyleSheet("background: white; border-radius: 10px;")
+        self.setStyleSheet("background: white;")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -171,7 +171,9 @@ class CalendarPopup(QWidget):
         self.calendar.date_selected.connect(self.date_changed.emit)
         layout.addWidget(self.calendar)
 
-        self.adjustSize()
+        hint = self.calendar.sizeHint()
+        self.calendar.setFixedWidth(hint.width())
+        self.setFixedSize(hint)
 
     def emit_date(self):
         self.date_changed.emit(self.calendar.selectedDate())
