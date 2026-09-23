@@ -62,6 +62,7 @@ class TaskEditor:
 
         left_column = title_label.parent()
         left_layout = left_column.layout()
+        editing_row = left_column.parentWidget()          # NEW: this is the TaskRow
 
         left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         left_layout.setSpacing(0)
@@ -69,7 +70,6 @@ class TaskEditor:
         # --- Title Entry ---
         edit = AutoResizeTextEdit()
         edit.setPlainText(current_title)
-
         edit.setMinimumWidth(0)
         edit.setMaximumWidth(16777215)
         edit.setStyleSheet('''
@@ -86,7 +86,6 @@ class TaskEditor:
         # --- Notes entry ---
         notes_entry = AutoResizeTextEdit()
         notes_entry.setPlaceholderText("Notes")
-
         notes_entry.setMinimumWidth(0)
         notes_entry.setMaximumWidth(16777215)
         notes_entry.setStyleSheet('''
@@ -100,6 +99,15 @@ class TaskEditor:
         ''')
         notes_entry.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
+        # NEW ── Date/Time control ────────────────────────────────────────
+        # Lazy import to keep task_editor free of widget-level dependencies
+        from task_row import DateTimeControl
+
+        task = self.main_window.service.get_task(task_id)
+        current_due_at = task.due_at if task is not None else None
+        date_time_control = DateTimeControl(value=current_due_at)
+        # ─────────────────────────────────────────────────────────────────
+
         # --- Load Existing Notes ---
         current_notes = self.main_window.service.get_notes(task_id)
         if current_notes and current_notes.strip():
@@ -112,12 +120,17 @@ class TaskEditor:
             if notes_text and not sip.isdeleted(notes_text):
                 notes_text.hide()
 
+        # NEW: hide the read-only due label while editing — the control replaces it
+        due_label = getattr(editing_row, "due_label", None)
+        if due_label is not None and not sip.isdeleted(due_label):
+            due_label.hide()
+
         # --- Add Editors ---
-        title_label.hide()
         left_layout.insertWidget(0, edit)
         left_layout.insertWidget(1, notes_entry)
+        left_layout.insertWidget(2, date_time_control)    # NEW
         left_layout.activate()
-        editing_row = left_column.parentWidget()
+
         editing_height = left_layout.sizeHint().height()
         left_column.setMinimumHeight(editing_height)
         left_column.setMaximumHeight(editing_height)
@@ -142,13 +155,11 @@ class TaskEditor:
             lambda: QTimer.singleShot(0, update_editing_row_height)
         )
 
-        # Recalculate the height
         QTimer.singleShot(0, edit.update_height)
         QTimer.singleShot(0, notes_entry.update_height)
         QTimer.singleShot(0, update_editing_row_height)
         QTimer.singleShot(0, self.main_window.task_list.update_container_height)
 
-        # --- Set focus based on clicked field ---
         if focus_on == "title":
             edit.setFocus()
             edit.moveCursor(QTextCursor.MoveOperation.End)
@@ -158,7 +169,7 @@ class TaskEditor:
 
         edit._notes_entry = notes_entry
 
-        # --- SAVE / FNINISH ---
+        # --- SAVE / FINISH ---
         def finish(save=True, skip_refresh=False):
             try:
                 new_title = edit.toPlainText().strip()
@@ -170,6 +181,12 @@ class TaskEditor:
             except (RuntimeError, AttributeError):
                 new_notes = None
 
+            # NEW: read the date/time before we tear the control down
+            try:
+                new_due_at = date_time_control.get_due_datetime()
+            except RuntimeError:
+                new_due_at = None
+
             if save and new_title is not None:
                 if new_title and new_title != current_title:
                     self.main_window.service.update_task_title(task_id, new_title)
@@ -177,6 +194,13 @@ class TaskEditor:
                         title_label.setText(new_title)
                 if new_notes is not None:
                     self.main_window.service.update_notes(task_id, new_notes)
+
+            # NEW: persist due date if the user changed it
+            if save and new_due_at != current_due_at:
+                self.main_window.service.update_due_at(task_id, new_due_at)
+                if editing_row is not None and hasattr(editing_row, "task"):
+                    editing_row.task.due_at = new_due_at
+                    editing_row.update_due_label()
 
             # --- Remove Title Editor ---
             if not sip.isdeleted(edit):
@@ -192,7 +216,13 @@ class TaskEditor:
                     notes_entry.setParent(None)
                     notes_entry.deleteLater()
 
-            # --- Restore Title ---
+            # NEW: remove Date/Time control
+            if not sip.isdeleted(date_time_control):
+                left_layout.removeWidget(date_time_control)
+                date_time_control.setParent(None)
+                date_time_control.deleteLater()
+
+            # --- Restore Column Sizing ---
             try:
                 left_column.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
                 left_column.setMinimumHeight(0)
@@ -221,6 +251,14 @@ class TaskEditor:
                     else:
                         notes_text.hide()
 
+            # NEW: bring back the read-only due label (or hide if due was cleared)
+            due_label = getattr(editing_row, "due_label", None)
+            if due_label is not None and not sip.isdeleted(due_label):
+                if new_due_at is not None:
+                    due_label.show()
+                else:
+                    due_label.hide()
+
             self._current_edit_finish = None
             self.main_window.setFocus()
 
@@ -229,7 +267,7 @@ class TaskEditor:
 
         self._current_edit_finish = finish
 
-        # --- Enter / Escape Handling --- 
+        # --- Enter / Escape Handling ---
         notes_filter = NotesEnterFilter(notes_entry, finish)
         notes_entry.installEventFilter(notes_filter)
         notes_entry._entry_filter = notes_filter
