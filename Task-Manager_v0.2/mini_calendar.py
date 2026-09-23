@@ -73,12 +73,6 @@ class DayCell(QLabel):
 
 
 class MiniCalendar(QWidget):
-    """A compact, reusable month-view calendar.
-
-    Emits `date_selected(QDate)` whenever the user picks a day.
-    Accepts a QDate, a QDateTime, or a python `datetime` as initial value.
-    """
-
     date_selected = pyqtSignal(QDate)
 
     def __init__(self, parent=None, value=None):
@@ -196,7 +190,7 @@ class MiniCalendar(QWidget):
 
         first = QDate(year, month, 1)
         # Qt dayOfWeek: Mon=1 ... Sun=7.  Sun-first offset = dayOfWeek % 7.
-        start_offset = first.dayOfWeek() % 7
+        start_offset = first.dayOfWeek() - 1
         start = first.addDays(-start_offset)
 
         today = QDate.currentDate()
