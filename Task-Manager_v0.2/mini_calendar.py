@@ -15,6 +15,11 @@ WEEKDAY_LABELS = {
     Qt.DayOfWeek.Sunday:    ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
 }
 
+# ──  Coloring ──────────────────────────────────────────────────────
+WEEKEND_HEADER_COLOR       = "#D93F3F"   # deeper red — matches your screenshot header
+WEEKEND_TEXT_IN_MONTH      = "#E86868"   # lighter red — for weekend day numbers
+WEEKEND_TEXT_OUT_OF_MONTH  = "#F4B0B0"   # faint red — weekends bleeding in from other months
+
 # A single day cell. Handles its own hover/selected/today styling.
 class DayCell(QLabel):
     clicked = pyqtSignal(QDate)
@@ -42,26 +47,26 @@ class DayCell(QLabel):
         in_month = self.date.month() == self._current_month
         is_today = self.date == self._today
         is_selected = self.date == self._selected
+        is_weekend = self.date.dayOfWeek() >= 6   # Sat=6, Sun=7
 
         if is_selected:
             bg, fg, weight = "#E5E5EA", "#1C1C1E", QFont.Weight.DemiBold
         elif is_today:
             bg, fg, weight = "#DDEBFF", "#147EFB", QFont.Weight.DemiBold
-        elif self._hovered:
-            bg = "#F2F2F7"
-            fg = "#1C1C1E" if in_month else "#C7C7CC"
-            weight = QFont.Weight.Normal
         else:
-            bg = "transparent"
-            fg = "#1C1C1E" if in_month else "#C7C7CC"
+            bg = "#F2F2F7" if self._hovered else "transparent"
+            if not in_month:
+                fg = WEEKEND_TEXT_OUT_OF_MONTH if is_weekend else "#C7C7CC"
+            else:
+                fg = WEEKEND_TEXT_IN_MONTH if is_weekend else "#1C1C1E"
             weight = QFont.Weight.Normal
 
         font = self.font()
-        font.setPointSize(9)                     # was 11 → tighter
+        font.setPointSize(9)
         font.setWeight(weight)
         self.setFont(font)
 
-        radius = self._cell_size // 2             # round pill, scales with cell
+        radius = self._cell_size // 2
         self.setStyleSheet(
             f"QLabel {{ color: {fg}; background: {bg}; border-radius: {radius}px; }}"
         )
@@ -146,11 +151,16 @@ class MiniCalendar(QWidget):
         self.grid.setSpacing(0)
 
         for col, name in enumerate(WEEKDAY_LABELS[self._first_day]):
+            # weekday index for this column: 0=Mon … 6=Sun
+            weekday_idx = (self._first_day.value - 1 + col) % 7
+            is_weekend = weekday_idx in (5, 6)  # Sat, Sun
+
             lbl = QLabel(name)
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl.setFixedSize(self.CELL_SIZE, self.WEEKDAY_HEIGHT)
+            color = WEEKEND_HEADER_COLOR if is_weekend else "#8E8E93"
             lbl.setStyleSheet(
-                f"color: #8E8E93; font-size: {self.WEEKDAY_FONT_SIZE}px;"
+                f"color: {color}; font-size: {self.WEEKDAY_FONT_SIZE}px;"
                 "font-weight: 600; background: transparent;"
             )
             self.grid.addWidget(lbl, 0, col)
