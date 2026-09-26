@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QGridLayout, QLabel, QToolButton, QHBoxLayout, QVBoxLayout
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QDate
+from PyQt6.QtCore import Qt, pyqtSignal, QDate, QSize
 from PyQt6.QtGui import QFont
 
 
@@ -19,6 +19,13 @@ WEEKDAY_LABELS = {
 WEEKEND_HEADER_COLOR       = "#D93F3F"   # deeper red — matches your screenshot header
 WEEKEND_TEXT_IN_MONTH      = "#E86868"   # lighter red — for weekend day numbers
 WEEKEND_TEXT_OUT_OF_MONTH  = "#F4B0B0"   # faint red — weekends bleeding in from other months
+
+class ClickableLabel(QLabel):
+    clicked = pyqtSignal()
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
 
 # A single day cell. Handles its own hover/selected/today styling.
 class DayCell(QLabel):
@@ -88,7 +95,9 @@ class DayCell(QLabel):
 
 
 class MiniCalendar(QWidget):
-    date_selected = pyqtSignal(QDate)
+    date_selected      = pyqtSignal(QDate)
+    month_year_clicked = pyqtSignal()
+    size_hint_changed  = pyqtSignal()
 
     # ── Tunable sizing (all in px) ────────────────────────────────────
     CELL_SIZE         = 24
@@ -129,13 +138,15 @@ class MiniCalendar(QWidget):
         header.setContentsMargins(self.HEADER_MARGIN_L, 0, 0, 0)
         header.setSpacing(0)
 
-        self.month_label = QLabel()
+        self.month_label = ClickableLabel()
+        self.month_label.setCursor(Qt.CursorShape.PointingHandCursor)
         self.month_label.setStyleSheet(
             f"color: #1C1C1E; font-size: {self.MONTH_FONT_SIZE}px;"
             "font-weight: 700; background: transparent;"
         )
-        header.addWidget(self.month_label)
-        header.addStretch()
+        self.month_label.clicked.connect(self.month_year_clicked.emit)
+        header.addWidget(self.month_label)     # ← was missing
+        header.addStretch()                    # ← was missing
 
         self.prev_btn = self._make_nav_button("‹")
         self.next_btn = self._make_nav_button("›")
@@ -172,6 +183,13 @@ class MiniCalendar(QWidget):
     def selected_date(self) -> QDate:
         return self._selected
 
+    def displayed_month(self) -> QDate:
+        return self._displayed_month
+
+    def set_displayed_month(self, year: int, month: int) -> None:
+        self._displayed_month = QDate(year, month, 1)
+        self._rebuild()
+
     def set_selected_date(self, value) -> None:
         qdate = self._coerce_to_qdate(value)
         if qdate is None:
@@ -179,6 +197,19 @@ class MiniCalendar(QWidget):
         self._selected = qdate
         self._displayed_month = QDate(qdate.year(), qdate.month(), 1)
         self._rebuild()
+
+    def sizeHint(self):
+        leading = self._first_day_offset(self._displayed_month)
+        total   = leading + self._displayed_month.daysInMonth()
+        rows    = 5 if total <= 35 else 6
+        return QSize(
+            self.CELL_SIZE * 7 + self.OUTER_MARGIN_H * 2,
+            self.OUTER_MARGIN_V * 2
+            + self.NAV_BUTTON_SIZE
+            + 1
+            + self.WEEKDAY_HEIGHT
+            + self.CELL_SIZE * rows,
+        )
 
     # Switch which weekday starts the grid (rebuilds the header).
     def set_first_day(self, first_day: Qt.DayOfWeek) -> None:
@@ -259,6 +290,9 @@ class MiniCalendar(QWidget):
             cell.clicked.connect(self._on_cell_clicked)
             self.grid.addWidget(cell, row, col)
             self._day_cells.append(cell)
+
+        self.updateGeometry()
+        self.size_hint_changed.emit()
 
     def _on_cell_clicked(self, date: QDate) -> None:
         self._selected = date

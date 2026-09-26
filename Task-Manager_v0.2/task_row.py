@@ -1,11 +1,12 @@
 from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
-    QLineEdit, QFrame, QTimeEdit, QAbstractItemView)
+    QLineEdit, QFrame, QTimeEdit, QAbstractItemView, QStackedWidget)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QTime, QDateTime, QEvent
 from PyQt6.QtGui import QTextOption, QPainter, QPainterPath, QColor, QPolygonF
 
 #From other files
 from mini_calendar import MiniCalendar
+from wheel_picker import MonthYearSelector
 
 class DetailsPopup(QWidget):
     def __init__(self, parent=None, arrow_side="left", save_callback=None):
@@ -167,16 +168,48 @@ class CalendarPopup(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        self.calendar = MiniCalendar(self, value)
-        self.calendar.date_selected.connect(self.date_changed.emit)
-        layout.addWidget(self.calendar)
+        self.stack = QStackedWidget()
+        layout.addWidget(self.stack)
 
-        hint = self.calendar.sizeHint()
-        self.calendar.setFixedWidth(hint.width())
+        # ── Day view ────────────────────────────────────────────────
+        self.day_view = MiniCalendar(self, value)
+        self.day_view.date_selected.connect(self.date_changed.emit)
+        self.day_view.month_year_clicked.connect(self._show_selector)
+        self.day_view.size_hint_changed.connect(self._sync_size)
+        self.stack.addWidget(self.day_view)
+
+        # ── Month/Year view ─────────────────────────────────────────
+        self.selector_view = MonthYearSelector(
+            self,
+            year=self.day_view.displayed_month().year(),
+            month=self.day_view.displayed_month().month(),
+        )
+        self.selector_view.value_changed.connect(self._on_selector_changed)
+        self.selector_view.dismiss_requested.connect(self._show_day_view)
+        self.stack.addWidget(self.selector_view)
+
+        self.stack.setCurrentWidget(self.day_view)
+        self._sync_size()
+
+    # ── View switching ──────────────────────────────────────────────
+    def _show_selector(self):
+        dm = self.day_view.displayed_month()
+        self.selector_view.set_value(dm.year(), dm.month())
+        self.stack.setCurrentWidget(self.selector_view)
+        self._sync_size()
+
+    def _show_day_view(self):
+        self.stack.setCurrentWidget(self.day_view)
+        self._sync_size()
+
+    def _on_selector_changed(self, year, month):
+        self.day_view.set_displayed_month(year, month)
+
+    # ── Sizing ──────────────────────────────────────────────────────
+    def _sync_size(self):
+        hint = self.stack.currentWidget().sizeHint()
+        self.stack.setFixedSize(hint)
         self.setFixedSize(hint)
-
-    def emit_date(self):
-        self.date_changed.emit(self.calendar.selectedDate())
 
 class TimePopup(QWidget):
     time_changed = pyqtSignal(object)
