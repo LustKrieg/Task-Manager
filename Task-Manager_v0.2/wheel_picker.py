@@ -166,6 +166,8 @@ class MonthYearSelector(QWidget):
     """Two WheelPickers side-by-side: month on the left, year on the right."""
 
     value_changed      = pyqtSignal(int, int)   # year, month (1-12)
+    committed          = pyqtSignal(int, int)
+    cancel_requested   = pyqtSignal()
     dismiss_requested  = pyqtSignal()           # user tapped outside the wheels
 
     MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -201,11 +203,32 @@ class MonthYearSelector(QWidget):
 
         self.month_wheel.value_changed.connect(self._on_change)
         self.year_wheel.value_changed.connect(self._on_change)
+        self.month_wheel.value_changed.connect(self._on_change)
+        self.year_wheel.value_changed.connect(self._on_change)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     def _on_change(self, _index):
         year  = self._years[self.year_wheel.current_index()]
         month = self.month_wheel.current_index() + 1
         self.value_changed.emit(year, month)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.month_wheel.setFocus()
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            year  = self._years[self.year_wheel.current_index()]
+            month = self.month_wheel.current_index() + 1
+            self.committed.emit(year, month)
+            event.accept()
+            return
+        if key == Qt.Key.Key_Escape:
+            self.cancel_requested.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def set_value(self, year, month):
         self.month_wheel.set_current_index(month - 1, animate=False)

@@ -98,6 +98,7 @@ class MiniCalendar(QWidget):
     date_selected      = pyqtSignal(QDate)
     month_year_clicked = pyqtSignal()
     size_hint_changed  = pyqtSignal()
+    month_changed      = pyqtSignal(int, int)
 
     # ── Tunable sizing (all in px) ────────────────────────────────────
     CELL_SIZE         = 24
@@ -293,6 +294,13 @@ class MiniCalendar(QWidget):
 
         self.updateGeometry()
         self.size_hint_changed.emit()
+
+        self.updateGeometry()
+        self.size_hint_changed.emit()
+        self.month_changed.emit(
+            self._displayed_month.year(),
+            self._displayed_month.month(),
+        )
 
     def _on_cell_clicked(self, date: QDate) -> None:
         self._selected = date

@@ -157,7 +157,8 @@ class PopupTextEdit(ScrollOnDemandTextEdit):
         QTimer.singleShot(0, self.update_height)
         
 class CalendarPopup(QWidget):
-    date_changed = pyqtSignal(object)
+    date_changed    = pyqtSignal(object)
+    month_displayed = pyqtSignal(int, int)
 
     def __init__(self, parent=None, value=None):
         super().__init__(parent)
@@ -176,6 +177,7 @@ class CalendarPopup(QWidget):
         self.day_view.date_selected.connect(self.date_changed.emit)
         self.day_view.month_year_clicked.connect(self._show_selector)
         self.day_view.size_hint_changed.connect(self._sync_size)
+        self.day_view.month_changed.connect(self.month_displayed.emit)
         self.stack.addWidget(self.day_view)
 
         # ── Month/Year view ─────────────────────────────────────────
@@ -185,6 +187,8 @@ class CalendarPopup(QWidget):
             month=self.day_view.displayed_month().month(),
         )
         self.selector_view.value_changed.connect(self._on_selector_changed)
+        self.selector_view.committed.connect(self._on_selector_committed)
+        self.selector_view.cancel_requested.connect(self._show_day_view)
         self.selector_view.dismiss_requested.connect(self._show_day_view)
         self.stack.addWidget(self.selector_view)
 
@@ -205,11 +209,34 @@ class CalendarPopup(QWidget):
     def _on_selector_changed(self, year, month):
         self.day_view.set_displayed_month(year, month)
 
+    def _on_selector_committed(self, year, month):
+        # value_changed already updated the day grid live while scrolling,
+        # so we just flip back to it.
+        self._show_day_view()
+
     # ── Sizing ──────────────────────────────────────────────────────
     def _sync_size(self):
         hint = self.stack.currentWidget().sizeHint()
         self.stack.setFixedSize(hint)
         self.setFixedSize(hint)
+
+    # ── Keep popup alive when leaving the wheel selector ────────────
+    def closeEvent(self, event):
+        # Qt.Popup closes on Esc and outside-click by default.  While the
+        # wheel selector is showing, treat that as "back to day grid".
+        if self.stack.currentWidget() is self.selector_view:
+            self._show_day_view()
+            event.ignore()
+            return
+        super().closeEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            if self.stack.currentWidget() is self.selector_view:
+                self._show_day_view()
+                event.accept()
+                return
+        super().keyPressEvent(event)
 
 class TimePopup(QWidget):
     time_changed = pyqtSignal(object)
@@ -242,6 +269,7 @@ class DateTimeControl(QWidget):
     def __init__(self, parent=None, value=None):
         super().__init__(parent)
         self._value = value
+        self._last_displayed_month = None
         self.calendar_popup = None
 
         self.date_button = QToolButton()
@@ -282,7 +310,13 @@ class DateTimeControl(QWidget):
 
         if button is self.date_button:
             self.calendar_popup = CalendarPopup(self, self._value)
+            # Reopen on the month the user last scrolled to, if any.
+            if self._last_displayed_month is not None:
+                self.calendar_popup.day_view.set_displayed_month(
+                    *self._last_displayed_month
+                )
             self.calendar_popup.date_changed.connect(self.set_due_date)
+            self.calendar_popup.month_displayed.connect(self._remember_month)
             self.calendar_popup.move(popup_position.x() - 4, popup_position.y() + 2)
             self.calendar_popup.show()
         else:
@@ -290,6 +324,9 @@ class DateTimeControl(QWidget):
             self.time_popup.time_changed.connect(self.set_due_time)
             self.time_popup.move(popup_position.x() - 4, popup_position.y() + 2)
             self.time_popup.show()
+
+    def _remember_month(self, year, month):
+        self._last_displayed_month = (year, month)
 
     def set_due_date(self, date):
         current_time = self._value.time() if self._value else QTime.currentTime()
