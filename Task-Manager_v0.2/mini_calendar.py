@@ -294,21 +294,17 @@ class MiniCalendar(QWidget):
 
         self.updateGeometry()
         self.size_hint_changed.emit()
-
-        self.updateGeometry()
-        self.size_hint_changed.emit()
         self.month_changed.emit(
             self._displayed_month.year(),
             self._displayed_month.month(),
         )
 
     def _on_cell_clicked(self, date: QDate) -> None:
-        self._selected = date
         if (date.year() != self._displayed_month.year()
                 or date.month() != self._displayed_month.month()):
-            self._displayed_month = QDate(date.year(), date.month(), 1)
-            self._rebuild()
-        else:
-            for cell in self._day_cells:
-                cell.set_selected(date)
+            return
+
+        self._selected = date
+        for cell in self._day_cells:
+            cell.set_selected(date)
         self.date_selected.emit(date)

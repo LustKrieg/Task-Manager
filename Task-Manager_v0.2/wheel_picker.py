@@ -34,7 +34,7 @@ class WheelPicker(QWidget):
         self._last_emit = selected_index
 
         self._anim = QPropertyAnimation(self, b"offset", self)
-        self._anim.setDuration(200)
+        self._anim.setDuration(110)
         self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
         self.setFixedSize(width, self.ITEM_HEIGHT * self.VISIBLE_ITEMS)
@@ -50,7 +50,7 @@ class WheelPicker(QWidget):
     def _get_offset(self): return self._offset
 
     def _set_offset(self, value):
-        self._offset = value
+        self._offset = min(max(float(value), 0.0), len(self._items) - 1.0)
         self.update()
         idx = int(round(self._offset))
         if idx != self._last_emit:
@@ -79,8 +79,12 @@ class WheelPicker(QWidget):
         notches = event.angleDelta().y() / 120.0
         if notches == 0:
             return
-        step = -1 if notches > 0 else 1
-        self.set_current_index(self.current_index() + step, animate=True)
+        steps = max(1, round(abs(notches)))
+        direction = -1 if notches > 0 else 1
+        self.set_current_index(
+            self.current_index() + direction * steps,
+            animate=True,
+        )
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Up:
@@ -172,7 +176,8 @@ class MonthYearSelector(QWidget):
 
     MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    YEAR_RANGE   = 10
+    YEAR_MIN = 1900
+    YEAR_MAX = 2100
 
     def __init__(self, parent=None, year=None, month=None):
         super().__init__(parent)
@@ -180,8 +185,7 @@ class MonthYearSelector(QWidget):
         year  = year  or today.year()
         month = month or today.month()
 
-        base = today.year()
-        self._years = list(range(base - self.YEAR_RANGE, base + self.YEAR_RANGE + 1))
+        self._years = list(range(self.YEAR_MIN, self.YEAR_MAX + 1))
 
         self.setStyleSheet("background: white;")
 
@@ -201,8 +205,6 @@ class MonthYearSelector(QWidget):
         row.addWidget(self.year_wheel)
         outer.addLayout(row)
 
-        self.month_wheel.value_changed.connect(self._on_change)
-        self.year_wheel.value_changed.connect(self._on_change)
         self.month_wheel.value_changed.connect(self._on_change)
         self.year_wheel.value_changed.connect(self._on_change)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
