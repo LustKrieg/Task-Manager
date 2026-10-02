@@ -1,3 +1,4 @@
+from datetime import datetime
 from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
     QLineEdit, QFrame, QTimeEdit, QAbstractItemView, QStackedWidget)
@@ -566,6 +567,9 @@ class TaskRow(QWidget):
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
         )
+        self.due_timer = QTimer(self)
+        self.due_timer.setSingleShot(True)
+        self.due_timer.timeout.connect(self.update_due_label)
         self.update_due_label()
 
         self.info_button = QToolButton(self)
@@ -630,10 +634,19 @@ class TaskRow(QWidget):
             )
 
     def update_due_label(self):
+        self.due_timer.stop()
         if self.task.due_at is None:
             self.due_label.clear()
             self.due_label.hide()
             return
+
+        now = datetime.now(self.task.due_at.tzinfo) if self.task.due_at.tzinfo else datetime.now()
+        is_overdue = self.task.due_at <= now
+        color = "#E30000" if self.current_tab == "active" and is_overdue else "#8E8E93"
+        self.due_label.setStyleSheet(f"color: {color}; font-size: 11px;")
+        if self.current_tab == "active" and not is_overdue:
+            milliseconds_until_due = int((self.task.due_at - now).total_seconds() * 1000)
+            self.due_timer.start(min(milliseconds_until_due, 2_147_483_647))
 
         self.due_label.setText(
             self.task.due_at.strftime("%b %-d, %-I:%M %p")
