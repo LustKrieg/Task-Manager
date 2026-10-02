@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QSizePolicy
+from datetime import datetime, timedelta
+from PyQt6.QtWidgets import QWidget, QSizePolicy, QLabel
 from PyQt6.QtCore import Qt, QTimer
 from task_row import NewTaskRow, TaskRow
 
@@ -37,16 +38,91 @@ class TaskList:
         return row
 
     def display_tasks(self, tasks):
-        for task in tasks:
-            row = self.create_task_row(task)
-            self.task_layout.addWidget(row)
-
-            separator = QWidget()
-            separator.setFixedHeight(1)
-            separator.setStyleSheet("background-color: #D1D1D6;")
-            self.task_layout.addWidget(separator)
+        if self.main_window.current_tab == "active":
+            for title, section_tasks in self._group_active_tasks(tasks):
+                heading = QLabel(title)
+                heading.setStyleSheet(
+                    "color: #3A3A3C; font-size: 14px; font-weight: 600;"
+                    "padding: 8px 0px 3px 0px;"
+                )
+                self.task_layout.addWidget(heading)
+                for task in section_tasks:
+                    self._add_task_row(task)
+        else:
+            for task in tasks:
+                self._add_task_row(task)
 
         QTimer.singleShot(0, self.update_container_height)
+
+    def _add_task_row(self, task):
+        row = self.create_task_row(task)
+        self.task_layout.addWidget(row)
+
+        separator = QWidget()
+        separator.setFixedHeight(1)
+        separator.setStyleSheet("background-color: #D1D1D6;")
+        self.task_layout.addWidget(separator)
+
+    @staticmethod
+    def _group_active_tasks(tasks):
+        now = datetime.now()
+        now_timestamp = now.timestamp()
+        today = now.date()
+        week_end = today + timedelta(days=6 - today.weekday())
+        dated_tasks = sorted(
+            (task for task in tasks if task.due_at is not None),
+            key=lambda task: task.due_at.timestamp(),
+        )
+        undated_tasks = [task for task in tasks if task.due_at is None]
+        sections = []
+
+        def add_section(title, matching_tasks):
+            if matching_tasks:
+                sections.append((title, matching_tasks))
+
+        overdue = [task for task in dated_tasks if task.due_at.timestamp() < now_timestamp]
+        add_section("Overdue", overdue)
+
+        remaining = [task for task in dated_tasks if task.due_at.timestamp() >= now_timestamp]
+        add_section("Today", [task for task in remaining if task.due_at.date() == today])
+
+        tomorrow = today + timedelta(days=1)
+        add_section("Tomorrow", [task for task in remaining if task.due_at.date() == tomorrow])
+
+        next_weekdays = today + timedelta(days=2)
+        while next_weekdays <= week_end:
+            add_section(
+                next_weekdays.strftime("%a %b %-d"),
+                [task for task in remaining if task.due_at.date() == next_weekdays],
+            )
+            next_weekdays += timedelta(days=1)
+
+        rest_of_month = [
+            task for task in remaining
+            if task.due_at.date().month == today.month
+            and task.due_at.date().year == today.year
+            and task.due_at.date() > week_end
+        ]
+        add_section(f"Rest of {now.strftime('%B')}", rest_of_month)
+
+        later_months = sorted({
+            (task.due_at.year, task.due_at.month)
+            for task in remaining
+            if (task.due_at.year, task.due_at.month) != (today.year, today.month)
+            and task.due_at.date() > week_end
+        })
+        for year, month in later_months:
+            month_tasks = [
+                task for task in remaining
+                if (task.due_at.year, task.due_at.month) == (year, month)
+            ]
+            title = datetime(year, month, 1).strftime("%B")
+            if year != today.year:
+                title += f", {year}"
+            add_section(title, month_tasks)
+
+        add_section("No Due Date", undated_tasks)
+        return sections
 
     def add_new_task_row(self):
         if hasattr(self.main_window, "new_task_row"):
