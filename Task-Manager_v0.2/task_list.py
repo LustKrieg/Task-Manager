@@ -3,6 +3,16 @@ from PyQt6.QtWidgets import QWidget, QSizePolicy, QLabel
 from PyQt6.QtCore import Qt, QTimer
 from task_row import NewTaskRow, TaskRow
 
+
+def format_due_for_search(value):
+    if value is None:
+        return ""
+    try:
+        return value.strftime("%b %-d %Y %-I:%M %p")
+    except ValueError:
+        return value.strftime("%b %d %Y %I:%M %p")
+
+
 class TaskList:
     def __init__(self, main_window, task_layout):
         self.main_window = main_window
@@ -196,9 +206,7 @@ class TaskList:
                 or self.main_window.search_text in t.notes.lower()
                 or (
                     t.due_at is not None
-                    and self.main_window.search_text in t.due_at.strftime(
-                        "%b %-d %Y %-I:%M %p"
-                    ).lower()
+                    and self.main_window.search_text in format_due_for_search(t.due_at).lower()
                 )
             ]
         return tasks

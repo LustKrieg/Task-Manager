@@ -9,6 +9,16 @@ from PyQt6.QtGui import QTextOption, QPainter, QPainterPath, QColor, QPolygonF
 from mini_calendar import MiniCalendar
 from wheel_picker import MonthYearSelector
 
+
+def format_due_datetime(value):
+    if value is None:
+        return ""
+    try:
+        return value.strftime("%b %-d, %-I:%M %p")
+    except ValueError:
+        return value.strftime("%b %d, %I:%M %p")
+
+
 class DetailsPopup(QWidget):
     def __init__(self, parent=None, arrow_side="left", save_callback=None):
         super().__init__(parent)
@@ -648,9 +658,7 @@ class TaskRow(QWidget):
             milliseconds_until_due = int((self.task.due_at - now).total_seconds() * 1000)
             self.due_timer.start(min(milliseconds_until_due, 2_147_483_647))
 
-        self.due_label.setText(
-            self.task.due_at.strftime("%b %-d, %-I:%M %p")
-        )
+        self.due_label.setText(format_due_datetime(self.task.due_at))
         self.due_label.show()
 
     def open_details_dialog(self):
