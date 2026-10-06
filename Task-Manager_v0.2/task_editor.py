@@ -260,7 +260,6 @@ class TaskEditor:
                     due_label.hide()
 
             self._current_edit_finish = None
-            self.main_window.setFocus()
 
             if not skip_refresh:
                 self.main_window.refresh_tasks()
