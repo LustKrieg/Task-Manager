@@ -123,11 +123,11 @@ class MainWindow(QMainWindow):
         self.task_layout = QVBoxLayout(self.task_container)
         self.task_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.task_layout.setContentsMargins(0, 0, 0, 0)
-        self.task_list = TaskList(self, self.task_layout)
 
         scroll.setWidget(self.task_container)
         scroll.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.task_scroll_area = scroll
+        self.task_list = TaskList(self, self.task_layout)
         content_layout.addWidget(scroll)
 
         # --- Add sidebar and content to main layout ---
@@ -139,6 +139,11 @@ class MainWindow(QMainWindow):
         self.refresh_tasks()
 
         self.setFocus()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "task_list"):
+            self.task_list.update_sticky_heading()
 
     def add_task(self):
         self.save_new_task()
@@ -277,6 +282,7 @@ class MainWindow(QMainWindow):
         new_task_row.deleteLater()
         del self.new_task_row
         self.task_list.update_container_height()
+        QTimer.singleShot(0, self.task_list.update_sticky_heading)
         self.task_scroll_area.setFocus()
 
     def focus_new_task_row(self):

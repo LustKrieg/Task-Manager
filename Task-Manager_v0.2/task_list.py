@@ -17,6 +17,17 @@ class TaskList:
     def __init__(self, main_window, task_layout):
         self.main_window = main_window
         self.task_layout = task_layout
+        self.section_headings = []
+        self.sticky_heading = QLabel(main_window.task_scroll_area.viewport())
+        self.sticky_heading.setFixedHeight(24)
+        self.sticky_heading.setStyleSheet(
+            "color: #3A3A3C; font-size: 13px; font-weight: 600;"
+            "padding: 4px 0px 0px 0px; background: white;"
+        )
+        self.sticky_heading.hide()
+        main_window.task_scroll_area.verticalScrollBar().valueChanged.connect(
+            self.update_sticky_heading
+        )
 
     def create_task_row(self, task):
         row = TaskRow(task, self.main_window.current_tab, self.main_window)
@@ -58,6 +69,7 @@ class TaskList:
                 )
                 heading.setProperty("sticky_section", True)
                 self.task_layout.addWidget(heading)
+                self.section_headings.append(heading)
                 for task in section_tasks:
                     self._add_task_row(task)
         else:
@@ -65,6 +77,36 @@ class TaskList:
                 self._add_task_row(task)
 
         QTimer.singleShot(0, self.update_container_height)
+        QTimer.singleShot(0, self.update_sticky_heading)
+
+    def update_sticky_heading(self, *_):
+        if (
+            not self.section_headings
+            or self.main_window.current_tab != "active"
+            or hasattr(self.main_window, "new_task_row")
+        ):
+            self.sticky_heading.hide()
+            return
+
+        scroll_area = self.main_window.task_scroll_area
+        scroll_value = scroll_area.verticalScrollBar().value()
+        handoff_position = scroll_value + self.sticky_heading.height()
+        current_heading = self.section_headings[0]
+        for heading in self.section_headings:
+            if heading.y() <= handoff_position:
+                current_heading = heading
+            else:
+                break
+
+        self.sticky_heading.setText(current_heading.text())
+        self.sticky_heading.setGeometry(
+            0,
+            0,
+            scroll_area.viewport().width(),
+            self.sticky_heading.height(),
+        )
+        self.sticky_heading.raise_()
+        self.sticky_heading.show()
 
     def _add_task_row(self, task):
         row = self.create_task_row(task)
@@ -172,6 +214,7 @@ class TaskList:
             )
         QTimer.singleShot(0, self.main_window.focus_new_task_row)
         QTimer.singleShot(0, self.update_container_height)
+        self.update_sticky_heading()
 
     def update_container_height(self):
         self.task_layout.activate()
@@ -182,6 +225,8 @@ class TaskList:
             container.setMinimumHeight(max(self.task_layout.sizeHint().height(), 1))
 
     def clear_task_list(self):
+        self.section_headings.clear()
+        self.sticky_heading.hide()
         container = self.task_layout.parentWidget()
         if container is not None:
             container.setMinimumHeight(0)
