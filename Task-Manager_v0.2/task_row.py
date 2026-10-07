@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
     QLineEdit, QFrame, QTimeEdit, QAbstractItemView, QStackedWidget)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QTime, QDateTime, QEvent
-from PyQt6.QtGui import QTextOption, QPainter, QPainterPath, QColor, QPolygonF
+from PyQt6.QtGui import QTextOption, QPainter, QPainterPath, QColor, QPolygonF, QShortcut, QKeySequence
 
 #From other files
 from mini_calendar import MiniCalendar
@@ -351,6 +351,14 @@ class DateTimeControl(QWidget):
         self._value = value.toPyDateTime() if hasattr(value, "toPyDateTime") else value
         self.update_button_texts()
         self.value_changed.emit(self._value)
+
+        parent = self.parent()
+        while parent is not None:
+            if hasattr(parent, "title_input"):
+                parent.title_input.setFocus()
+                parent.title_input.setCursorPosition(len(parent.title_input.text()))
+                return
+            parent = parent.parent()
 
     def update_button_texts(self):
         if self._value is None:

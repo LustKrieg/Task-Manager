@@ -163,7 +163,7 @@ class MainWindow(QMainWindow):
         self.task_list.clear_task_list()
         tasks = self.task_list.get_visible_tasks()
         self.task_list.display_tasks(tasks)
-        QTimer.singleShot(0,lambda: self.task_scroll_area.verticalScrollBar().setValue(scroll_value))
+        QTimer.singleShot(0, lambda: self.task_scroll_area.verticalScrollBar().setValue(scroll_value))
 
     def complete_task(self, task_id: int):
         self.service.complete_task(task_id)

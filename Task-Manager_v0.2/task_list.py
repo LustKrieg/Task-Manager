@@ -51,10 +51,12 @@ class TaskList:
         if self.main_window.current_tab == "active":
             for title, section_tasks in self._group_active_tasks(tasks):
                 heading = QLabel(title)
+                heading.setFixedHeight(24)
                 heading.setStyleSheet(
-                    "color: #3A3A3C; font-size: 14px; font-weight: 600;"
-                    "padding: 8px 0px 3px 0px;"
+                    "color: #3A3A3C; font-size: 13px; font-weight: 600;"
+                    "padding: 4px 0px 0px 0px; background: white;"
                 )
+                heading.setProperty("sticky_section", True)
                 self.task_layout.addWidget(heading)
                 for task in section_tasks:
                     self._add_task_row(task)
@@ -137,6 +139,7 @@ class TaskList:
     def add_new_task_row(self):
         if hasattr(self.main_window, "new_task_row"):
             self.main_window.new_task_row.title_input.setFocus()
+            self.main_window.new_task_row.title_input.selectAll()
             return
 
         container = self.task_layout.parentWidget()
