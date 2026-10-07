@@ -39,34 +39,34 @@ class DetailsPopup(QWidget):
 
         if self.arrow_side == "left":
             body_left = 10
-            body_width = self.width() - 12 # leaving 1 px so right cornres render
+            body_width = self.width() - 12
         else:
             body_left = 0
-            body_width = self.width() - 12 # same here
+            body_width = self.width() - 10
 
-        path = QPainterPath()
-        path.addRoundedRect(body_left, 0, body_width, self.height(), 18, 18)
+        body_path = QPainterPath()
+        body_path.addRoundedRect(body_left, 0, body_width, self.height(), 18, 18)
+
+        if self.arrow_side == "left":
+            triangle = QPolygonF([
+                QPointF(11, 32),
+                QPointF(0, 40),
+                QPointF(11, 48)
+            ])
+        else:
+            triangle = QPolygonF([
+                QPointF(self.width() - 11, 32),
+                QPointF(self.width(), 40),
+                QPointF(self.width() - 11, 48)
+            ])
+
+        arrow_path = QPainterPath()
+        arrow_path.addPolygon(triangle)
+        path = body_path.united(arrow_path)
 
         painter.setBrush(body_color)
         painter.setPen(border_color)
         painter.drawPath(path)
-
-        if self.arrow_side == "left":
-            triangle = QPolygonF([
-                QPointF(10, 32),
-                QPointF(0, 40),
-                QPointF(10, 48)
-            ])
-        else:
-            triangle = QPolygonF([
-                QPointF(self.width() - 10, 32),
-                QPointF(self.width(), 40),
-                QPointF(self.width() - 10, 48)
-            ])
-
-        painter.setBrush(body_color)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawPolygon(triangle)
 
     def closeEvent(self, event):
         if not self._saved and self.save_callback is not None:
