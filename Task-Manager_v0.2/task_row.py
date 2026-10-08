@@ -1,8 +1,8 @@
 from datetime import datetime
-from PyQt6.QtWidgets import (QWidget, QSizePolicy,
+from PyQt6.QtWidgets import (QApplication, QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
     QLineEdit, QFrame, QTimeEdit, QAbstractItemView, QStackedWidget)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QTime, QDateTime, QEvent
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPoint, QPointF, QTime, QDateTime, QEvent
 from PyQt6.QtGui import QTextOption, QPainter, QPainterPath, QColor, QPolygonF, QShortcut, QKeySequence
 
 #From other files
@@ -20,16 +20,17 @@ def format_due_datetime(value):
 
 
 class DetailsPopup(QWidget):
-    def __init__(self, parent=None, arrow_side="left", save_callback=None):
+    def __init__(self, parent=None, arrow_side="left", save_callback=None, owner_row=None, host_window=None):
         super().__init__(parent)
         self.arrow_side = arrow_side
         self.save_callback = save_callback
+        self.owner_row = owner_row
+        self.host_window = host_window
         self._saved = False
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setWindowFlags(
-            Qt.WindowType.Popup |
-            Qt.WindowType.FramelessWindowHint
-        )
+        self._application = QApplication.instance()
+        if self._application is not None:
+            self._application.installEventFilter(self)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -69,15 +70,41 @@ class DetailsPopup(QWidget):
         painter.drawPath(path)
 
     def closeEvent(self, event):
+        if self._application is not None:
+            self._application.removeEventFilter(self)
+
         if not self._saved and self.save_callback is not None:
             self._saved = True
             self.save_callback()
 
-        owner = self.parentWidget()
+        owner = self.owner_row
         if owner is not None and getattr(owner, "details_popup", None) is self:
             owner.details_popup = None
             owner.info_button.hide()
         super().closeEvent(event)
+
+    def eventFilter(self, watched, event):
+        if (
+            watched is self.host_window
+            and event.type() == QEvent.Type.WindowDeactivate
+            and self.isVisible()
+        ):
+            QTimer.singleShot(0, self.close_if_app_deactivated)
+
+        if event.type() == QEvent.Type.MouseButtonPress and self.isVisible():
+            is_child_widget = isinstance(watched, QWidget) and self.isAncestorOf(watched)
+            click_position = self.mapFromGlobal(event.globalPosition().toPoint())
+            if (
+                not is_child_widget
+                and not self.rect().contains(click_position)
+            ):
+                self.close()
+        return super().eventFilter(watched, event)
+
+    def close_if_app_deactivated(self):
+        active_window = QApplication.activeWindow()
+        if active_window is None or not self.isAncestorOf(active_window):
+            self.close()
 
 
 class CircleButton(QPushButton):
@@ -690,7 +717,13 @@ class TaskRow(QWidget):
             arrow_side = "right"
             x = button_top_left.x() - popup_width - gap
 
-        popup = DetailsPopup(self, arrow_side=arrow_side)
+        popup_parent = self.main_window.centralWidget()
+        popup = DetailsPopup(
+            popup_parent,
+            arrow_side=arrow_side,
+            owner_row=self,
+            host_window=self.main_window.window(),
+        )
         self.details_popup = popup
         popup.resize(popup_width, 10)
 
@@ -810,18 +843,25 @@ class TaskRow(QWidget):
             content.setGeometry(content_x, 0, content_width, final_height)
             popup.resize(popup_width, final_height)
 
-            button_center_y = self.info_button.mapToGlobal(info_rect.center()).y()
-            popup_y = button_center_y - 38
-            popup_y = max(
-                main_rect.top() + 12,
-                min(popup_y, main_rect.bottom() - popup.height() - 12),
-            )
-            popup.move(x, popup_y)
-
         resize_popup()
+        button_top_left = self.info_button.mapToGlobal(info_rect.topLeft())
+        button_top_right = self.info_button.mapToGlobal(info_rect.topRight())
+        popup_x = (
+            button_top_right.x() + gap
+            if arrow_side == "left"
+            else button_top_left.x() - popup_width - gap
+        )
+        button_center_y = self.info_button.mapToGlobal(info_rect.center()).y()
+        popup_y = button_center_y - 38
+        popup_y = max(
+            main_rect.top() + 12,
+            min(popup_y, main_rect.bottom() - popup.height() - 12),
+        )
+        popup.move(popup_parent.mapFromGlobal(QPoint(popup_x, popup_y)))
 
         self.info_button.show()
         popup.show()
+        popup.raise_()
         title_lbl.textChanged.connect(lambda: QTimer.singleShot(0, resize_popup))
         notes_lbl.textChanged.connect(lambda: QTimer.singleShot(0, resize_popup))
         QTimer.singleShot(0, title_lbl.hide_scrollbar)
