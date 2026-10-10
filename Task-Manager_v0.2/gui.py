@@ -1,11 +1,11 @@
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
-    QHBoxLayout, QPushButton, QLabel,
-    QScrollArea, QMenu, QSizePolicy
+    QHBoxLayout, QPushButton, QToolButton, QLabel, QCheckBox, QButtonGroup,
+    QScrollArea, QMenu, QSizePolicy, QStackedWidget, QFrame
 )
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QAction, QFont
 from database import TaskDatabase
 from service import TaskService
 
@@ -20,12 +20,14 @@ class MainWindow(QMainWindow):
     def __init__(self, service: TaskService):
         super().__init__()
         self.current_tab = "active"
+        self.last_task_tab = "active"
         self.service = service
         self.setWindowTitle("Task Manager")
         self.setGeometry(100, 100, 790, 500)
         self.pending_timers = {}
         self.search_text = ""
         self.task_editor = TaskEditor(self)
+        self.russian_mode = False
 
         # --- Central Widget ---
         central = QWidget()
@@ -46,8 +48,17 @@ class MainWindow(QMainWindow):
         self.completed_tab.clicked.connect(lambda: self.switch_tab("completed"))
         self.trash_tab.clicked.connect(lambda: self.switch_tab("trash"))
 
+        self.menuBar().setNativeMenuBar(True)
+        self.settings_menu = self.menuBar().addMenu("Settings")
+        self.open_settings_action = QAction("Preferences", self)
+        self.open_settings_action.triggered.connect(self.open_settings)
+        self.settings_menu.addAction(self.open_settings_action)
+
 
         # --- CONTENT (Right) ---
+        self.content_stack = QStackedWidget()
+        self.content_stack.setStyleSheet("background: white;")
+
         content = QWidget()
         content.setStyleSheet("background: white;")
         content_layout = QVBoxLayout(content)
@@ -85,6 +96,26 @@ class MainWindow(QMainWindow):
         add_btn.clicked.connect(self.add_task_from_button)
         top_bar.addWidget(self.title_label)
         top_bar.addStretch()
+        settings_btn = QToolButton()
+        settings_btn.setText("\u2699\ufe0e")
+        settings_btn.setFixedSize(30, 30)
+        settings_btn.setToolTip("Settings")
+        settings_btn.setAccessibleName("Settings")
+        settings_btn.setStyleSheet('''
+            QToolButton {
+                border: none;
+                border-radius: 6px;
+                background: transparent;
+                color: #636366;
+                font-size: 16px;
+            }
+            QToolButton:hover {
+                background: #E9EAEC;
+                color: #1C1C1E;
+            }
+        ''')
+        settings_btn.clicked.connect(self.open_settings)
+        top_bar.addWidget(settings_btn)
         top_bar.addWidget(add_btn)
 
         content_layout.addLayout(top_bar)
@@ -130,10 +161,140 @@ class MainWindow(QMainWindow):
         self.task_list = TaskList(self, self.task_layout)
         content_layout.addWidget(scroll)
 
+        # --- Settings page ---
+        settings_page = QWidget()
+        settings_page.setStyleSheet("background: #FFFFFF;")
+        settings_layout = QHBoxLayout(settings_page)
+        settings_layout.setContentsMargins(0, 0, 0, 0)
+        settings_layout.setSpacing(0)
+
+        settings_navigation = QWidget()
+        settings_navigation.setFixedWidth(205)
+        settings_navigation.setStyleSheet("background: #F5F5F7;")
+        navigation_layout = QVBoxLayout(settings_navigation)
+        navigation_layout.setContentsMargins(18, 22, 18, 20)
+        navigation_layout.setSpacing(10)
+
+        back_btn = QToolButton()
+        back_btn.setText("\u2190")
+        back_btn.setToolTip("Back to tasks")
+        back_btn.setAccessibleName("Back to tasks")
+        back_btn.setFixedSize(34, 34)
+        back_btn.setStyleSheet('''
+            QToolButton {
+                border: none;
+                border-radius: 6px;
+                background: transparent;
+                color: #3A3A3C;
+                font-size: 20px;
+            }
+            QToolButton:hover {
+                background: #E7E7EA;
+            }
+        ''')
+        back_btn.clicked.connect(lambda: self.switch_tab(self.last_task_tab))
+        navigation_layout.addWidget(back_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        settings_title = QLabel("Settings")
+        settings_title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        settings_title.setStyleSheet("color: #202124;")
+        navigation_layout.addWidget(settings_title)
+
+        language_tab = QPushButton("Language")
+        general_tab = QPushButton("General")
+        for btn in (language_tab, general_tab):
+            btn.setFixedHeight(38)
+            btn.setCheckable(True)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet('''
+                QPushButton {
+                    border: none;
+                    border-radius: 6px;
+                    background: transparent;
+                    color: #3A3A3C;
+                    text-align: left;
+                    padding: 0 12px;
+                }
+                QPushButton:checked {
+                    background: #E5E7EA;
+                    color: #202124;
+                    font-weight: 600;
+                }
+                QPushButton:hover:!checked {
+                    background: #ECEDEF;
+                }
+            ''')
+
+        self.settings_section_group = QButtonGroup(settings_page)
+        self.settings_section_group.setExclusive(True)
+        self.settings_section_group.addButton(language_tab, 0)
+        self.settings_section_group.addButton(general_tab, 1)
+        language_tab.setChecked(True)
+        language_tab.clicked.connect(lambda: self.settings_panel_stack.setCurrentIndex(0))
+        general_tab.clicked.connect(lambda: self.settings_panel_stack.setCurrentIndex(1))
+        navigation_layout.addWidget(language_tab)
+        navigation_layout.addWidget(general_tab)
+        navigation_layout.addStretch()
+
+        settings_divider = QFrame()
+        settings_divider.setFrameShape(QFrame.Shape.VLine)
+        settings_divider.setFixedWidth(1)
+        settings_divider.setStyleSheet("color: #D9DADD; background: #D9DADD;")
+
+        self.settings_panel_stack = QStackedWidget()
+        self.settings_panel_stack.setStyleSheet("background: #FFFFFF;")
+
+        language_page = QWidget()
+        language_layout = QVBoxLayout(language_page)
+        language_layout.setContentsMargins(36, 30, 36, 30)
+        language_layout.setSpacing(18)
+        language_heading = QLabel("Language")
+        language_heading.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        language_heading.setStyleSheet("color: #202124;")
+        language_layout.addWidget(language_heading)
+
+        self.language_setting = QCheckBox("Russian language")
+        self.language_setting.stateChanged.connect(self.on_language_setting_changed)
+        self.language_setting.setStyleSheet('''
+            QCheckBox {
+                color: #303136;
+                font-size: 14px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+            }
+            QCheckBox::indicator:checked {
+                background: #505A66;
+                border: 1px solid #505A66;
+                border-radius: 3px;
+            }
+        ''')
+        language_layout.addWidget(self.language_setting)
+        language_layout.addStretch()
+
+        general_page = QWidget()
+        general_layout = QVBoxLayout(general_page)
+        general_layout.setContentsMargins(36, 30, 36, 30)
+        general_heading = QLabel("General")
+        general_heading.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        general_heading.setStyleSheet("color: #202124;")
+        general_layout.addWidget(general_heading)
+        general_layout.addStretch()
+
+        self.settings_panel_stack.addWidget(language_page)
+        self.settings_panel_stack.addWidget(general_page)
+        settings_layout.addWidget(settings_navigation)
+        settings_layout.addWidget(settings_divider)
+        settings_layout.addWidget(self.settings_panel_stack, 1)
+
+        self.content_stack.addWidget(content)
+        self.content_stack.addWidget(settings_page)
+
         # --- Add sidebar and content to main layout ---
         main_layout.addWidget(self.sidebar)
-        main_layout.addWidget(content)
-        main_layout.setStretchFactor(content, 1)
+        main_layout.addWidget(self.content_stack)
+        main_layout.setStretchFactor(self.content_stack, 1)
 
         # --- Load tasks ---
         self.refresh_tasks()
@@ -148,15 +309,23 @@ class MainWindow(QMainWindow):
     def add_task(self):
         self.save_new_task()
 
+    def open_settings(self):
+        self.current_tab = "settings"
+        self.sidebar.hide()
+        self.content_stack.setCurrentIndex(1)
+
     def switch_tab(self, tab_name: str):
         for tab, name in [(self.active_tab, "active"), 
                         (self.completed_tab, "completed"), 
                         (self.trash_tab, "trash")]:
             tab.setProperty("active", name == tab_name)
             tab.style().polish(tab)
-        
+
         self.current_tab = tab_name
 
+        self.last_task_tab = tab_name
+        self.sidebar.show()
+        self.content_stack.setCurrentIndex(0)
         titles = {"active": "Active", "completed": "Completed", "trash": "Recently Deleted"}
         self.title_label.setText(titles[tab_name])
         self.refresh_tasks()
@@ -292,7 +461,11 @@ class MainWindow(QMainWindow):
 
     def on_search_changed(self, text):
         self.search_text = text.strip().lower()
-        self.refresh_tasks()
+        if self.current_tab != "settings":
+            self.refresh_tasks()
+
+    def on_language_setting_changed(self, state):
+        self.russian_mode = state == 2
 
     def show_context_menu(self, pos, task_id):
         menu = QMenu()
@@ -321,6 +494,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setApplicationName("Task Manager")
     db = TaskDatabase()
     db.create_table()
     service = TaskService(db)
