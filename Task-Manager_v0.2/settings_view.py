@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QButtonGroup, QFrame, QHBoxLayout, QLabel, QMenu, QPushButton,
     QStackedWidget, QToolButton, QVBoxLayout, QWidget,
 )
+from localization import available_languages, tr
 
 
 class LanguageMenuButton(QPushButton):
@@ -49,8 +50,8 @@ class SettingsView(QWidget):
 
         back_button = QToolButton()
         back_button.setText("\u2190")
-        back_button.setToolTip("Back to tasks")
-        back_button.setAccessibleName("Back to tasks")
+        back_button.setToolTip(tr("Back to tasks"))
+        back_button.setAccessibleName(tr("Back to tasks"))
         back_button.setFixedSize(34, 34)
         back_button.setStyleSheet("""
             QToolButton {
@@ -65,13 +66,14 @@ class SettingsView(QWidget):
         back_button.clicked.connect(self.back_requested)
         navigation_layout.addWidget(back_button, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        title = QLabel("Settings")
-        title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        title.setStyleSheet("color: #202124;")
-        navigation_layout.addWidget(title)
+        self.title_label = QLabel(tr("Settings"))
+        self.title_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        self.title_label.setStyleSheet("color: #202124;")
+        navigation_layout.addWidget(self.title_label)
 
         self.language_tab = self._make_section_button("Language")
         self.general_tab = self._make_section_button("General")
+        self.back_button = back_button
         self.section_group = QButtonGroup(self)
         self.section_group.setExclusive(True)
         self.section_group.addButton(self.language_tab)
@@ -126,14 +128,14 @@ class SettingsView(QWidget):
         layout.setContentsMargins(36, 30, 36, 30)
         layout.setSpacing(18)
 
-        heading = QLabel("Language")
-        heading.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        heading.setStyleSheet("color: #202124;")
-        layout.addWidget(heading)
+        self.language_heading = QLabel(tr("Language"))
+        self.language_heading.setFont(QFont("Arial", 24, QFont.Weight.Bold))
+        self.language_heading.setStyleSheet("color: #202124;")
+        layout.addWidget(self.language_heading)
 
         self.language_picker = LanguageMenuButton()
-        self.language_picker.setAccessibleName("Choose language")
-        self.language_picker.setToolTip("Choose language")
+        self.language_picker.setAccessibleName(tr("Choose language"))
+        self.language_picker.setToolTip(tr("Choose language"))
         self.language_picker.setFixedSize(150, 32)
         self.language_picker.setFlat(True)
         self.language_picker.setStyleSheet("""
@@ -178,7 +180,7 @@ class SettingsView(QWidget):
         self.language_actions = {}
         self.language_action_group = QActionGroup(self.language_menu)
         self.language_action_group.setExclusive(True)
-        for language in ("English", "Русский"):
+        for language in available_languages():
             action = QAction(language, self.language_menu)
             action.setCheckable(True)
             action.triggered.connect(
@@ -200,10 +202,10 @@ class SettingsView(QWidget):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setContentsMargins(36, 30, 36, 30)
-        heading = QLabel("General")
-        heading.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        heading.setStyleSheet("color: #202124;")
-        layout.addWidget(heading)
+        self.general_heading = QLabel(tr("General"))
+        self.general_heading.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        self.general_heading.setStyleSheet("color: #202124;")
+        layout.addWidget(self.general_heading)
         layout.addStretch()
         return page
 
@@ -214,10 +216,20 @@ class SettingsView(QWidget):
         self.language_menu.popup(position)
 
     def set_language(self, language, emit=True):
-        if language not in self.language_actions:
+        if language not in available_languages():
             return
         self.current_language = language
         self.language_actions[language].setChecked(True)
         self.language_picker.setText(language)
         if emit:
             self.language_changed.emit(language)
+
+    def retranslate_ui(self):
+        self.back_button.setToolTip(tr("Back to tasks"))
+        self.back_button.setAccessibleName(tr("Back to tasks"))
+        self.title_label.setText(tr("Settings"))
+        self.language_tab.setText(tr("Language"))
+        self.general_tab.setText(tr("General"))
+        self.language_heading.setText(tr("Language"))
+        self.general_heading.setText(tr("General"))
+        self.language_picker.setToolTip(tr("Choose language"))

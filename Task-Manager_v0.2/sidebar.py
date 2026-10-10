@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from styles import SIDEBAR_BUTTON_STYLE
+from localization import tr
 
 
 class SearchLineEdit(QLineEdit):
@@ -44,7 +45,7 @@ class Sidebar(QWidget):
             search_icon = QIcon(pixmap)
 
         self.search_input.addAction(search_icon, QLineEdit.ActionPosition.LeadingPosition)
-        self.search_input.setPlaceholderText("Search")
+        self.search_input.setPlaceholderText(tr("Search"))
         self.search_input.setStyleSheet("""
             QLineEdit {
                 border: 1px solid #D1D1D6;
@@ -62,9 +63,9 @@ class Sidebar(QWidget):
 
         layout.addWidget(self.search_input)
 
-        self.active_tab = QPushButton("○  Active")
-        self.completed_tab = QPushButton("✓  Completed")
-        self.trash_tab = QPushButton("⛌ Trash")
+        self.active_tab = QPushButton(tr("○  Active"))
+        self.completed_tab = QPushButton(tr("✓  Completed"))
+        self.trash_tab = QPushButton(tr("⛌  Trash"))
         self.trash_tab.setObjectName("trashTab")
 
         for button in (
@@ -90,3 +91,9 @@ class Sidebar(QWidget):
         layout.addWidget(self.trash_tab)
 
         layout.addStretch()
+
+    def retranslate_ui(self):
+        self.search_input.setPlaceholderText(tr("Search"))
+        self.active_tab.setText(f"○  {tr('Active')}")
+        self.completed_tab.setText(f"✓  {tr('Completed')}")
+        self.trash_tab.setText(f"⛌  {tr('Trash')}")

@@ -5,6 +5,7 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QPainter, QFont, QColor
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
+from localization import month_abbreviations
 
 
 class WheelPicker(QWidget):
@@ -174,8 +175,6 @@ class MonthYearSelector(QWidget):
     cancel_requested   = pyqtSignal()
     dismiss_requested  = pyqtSignal()           # user tapped outside the wheels
 
-    MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     YEAR_MIN = 1900
     YEAR_MAX = 2100
 
@@ -197,7 +196,7 @@ class MonthYearSelector(QWidget):
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(2)
 
-        self.month_wheel = WheelPicker(self.MONTH_LABELS,
+        self.month_wheel = WheelPicker(month_abbreviations(),
                                        selected_index=month - 1)
         self.year_wheel  = WheelPicker([str(y) for y in self._years],
                                        selected_index=self._years.index(year))

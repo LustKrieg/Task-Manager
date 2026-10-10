@@ -4,6 +4,10 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QSizePolicy,
     QLineEdit, QFrame, QTimeEdit, QAbstractItemView, QStackedWidget)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPoint, QPointF, QTime, QDateTime, QEvent
 from PyQt6.QtGui import QTextOption, QPainter, QPainterPath, QColor, QPolygonF, QShortcut, QKeySequence
+from localization import (
+    format_created_datetime, format_date_button, format_due_datetime as localized_due_datetime,
+    format_time_button, is_russian, tr,
+)
 
 #From other files
 from mini_calendar import MiniCalendar
@@ -11,12 +15,7 @@ from wheel_picker import MonthYearSelector
 
 
 def format_due_datetime(value):
-    if value is None:
-        return ""
-    try:
-        return value.strftime("%b %-d, %-I:%M %p")
-    except ValueError:
-        return value.strftime("%b %d, %I:%M %p")
+    return localized_due_datetime(value)
 
 
 class DetailsPopup(QWidget):
@@ -286,7 +285,7 @@ class TimePopup(QWidget):
         self.setStyleSheet("background: white; color: #2C2C2E;")
 
         self.time_edit = QTimeEdit(self)
-        self.time_edit.setDisplayFormat("h:mm AP")
+        self.time_edit.setDisplayFormat("HH:mm" if is_russian() else "h:mm AP")
         self.time_edit.setTime(value.time() if value else QTime.currentTime())
         self.time_edit.setGeometry(8, 8, 136, 42)
         self.time_edit.setStyleSheet('''
@@ -311,11 +310,11 @@ class DateTimeControl(QWidget):
         self.calendar_popup = None
 
         self.date_button = QToolButton()
-        self.date_button.setText("Add Date")
+        self.date_button.setText(tr("Add Date"))
         self.date_button.clicked.connect(self.open_calendar_popup)
 
         self.time_button = QToolButton()
-        self.time_button.setText("Add Time")
+        self.time_button.setText(tr("Add Time"))
         self.time_button.clicked.connect(self.open_calendar_popup)
 
         for button in (self.date_button, self.time_button):
@@ -389,12 +388,15 @@ class DateTimeControl(QWidget):
 
     def update_button_texts(self):
         if self._value is None:
-            self.date_button.setText("Add Date")
-            self.time_button.setText("Add Time")
+            self.date_button.setText(tr("Add Date"))
+            self.time_button.setText(tr("Add Time"))
             return
 
-        self.date_button.setText(self._value.strftime("%b %-d"))
-        self.time_button.setText(self._value.strftime("%-I:%M %p"))
+        self.date_button.setText(format_date_button(self._value))
+        self.time_button.setText(format_time_button(self._value))
+
+    def retranslate_ui(self):
+        self.update_button_texts()
 
     def get_due_datetime(self):
         return self._value
@@ -410,7 +412,7 @@ class NewTaskRow(QWidget):
         circle.setStyleSheet("color: #8E8E93; font-size: 19px;")
 
         self.title_input = NewTaskInput()
-        self.title_input.setPlaceholderText("New Reminder")
+        self.title_input.setPlaceholderText(tr("New Reminder"))
         self.title_input.setStyleSheet('''
             QLineEdit {
                 border: none;
@@ -424,7 +426,7 @@ class NewTaskRow(QWidget):
         self.title_input.escape_pressed.connect(cancel_task)
 
         self.notes_input = NewTaskInput()
-        self.notes_input.setPlaceholderText("Notes")
+        self.notes_input.setPlaceholderText(tr("Notes"))
         self.notes_input.setStyleSheet('''
             QLineEdit {
                 border: none;
@@ -450,6 +452,11 @@ class NewTaskRow(QWidget):
         text_layout.addWidget(self.notes_input)
         text_layout.addWidget(self.date_time_control)
         layout.addLayout(text_layout)
+
+    def retranslate_ui(self):
+        self.title_input.setPlaceholderText(tr("New Reminder"))
+        self.notes_input.setPlaceholderText(tr("Notes"))
+        self.date_time_control.retranslate_ui()
 
 class TaskRow(QWidget):
     def __init__(self, task, current_tab, main_window):
@@ -696,6 +703,11 @@ class TaskRow(QWidget):
         self.due_label.setText(format_due_datetime(self.task.due_at))
         self.due_label.show()
 
+    def retranslate_ui(self):
+        self.update_due_label()
+        for control in self.findChildren(DateTimeControl):
+            control.retranslate_ui()
+
     def open_details_dialog(self):
         if hasattr(self, "details_popup") and self.details_popup is not None:
             self.details_popup.close()
@@ -760,7 +772,7 @@ class TaskRow(QWidget):
         # Notes
         notes = self.task.notes or ""
         notes_lbl = PopupTextEdit(notes, maximum_height=80)
-        notes_lbl.setPlaceholderText("Notes")
+        notes_lbl.setPlaceholderText(tr("Notes"))
         notes_lbl.setReadOnly(self.current_tab != "active")
         notes_lbl.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         notes_lbl.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -786,7 +798,7 @@ class TaskRow(QWidget):
         content_layout.addWidget(div2)
 
         # Created date -- always shown
-        date_str = self.task.created_at.strftime("Created %b %d, %Y · %I:%M %p")
+        date_str = format_created_datetime(self.task.created_at)
         date_lbl = QLabel(date_str)
         date_lbl.setStyleSheet('''
             QLabel {

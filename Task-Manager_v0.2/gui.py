@@ -15,6 +15,7 @@ from task_editor import TaskEditor
 from task_list import TaskList
 from task_row import TaskRow
 from settings_view import SettingsView
+from localization import set_language as set_ui_language, tr
 
 
 class MainWindow(QMainWindow):
@@ -23,7 +24,7 @@ class MainWindow(QMainWindow):
         self.current_tab = "active"
         self.last_task_tab = "active"
         self.service = service
-        self.setWindowTitle("Task Manager")
+        self.setWindowTitle(tr("Task Manager"))
         self.setGeometry(100, 100, 790, 500)
         self.pending_timers = {}
         self.search_text = ""
@@ -50,8 +51,8 @@ class MainWindow(QMainWindow):
         self.trash_tab.clicked.connect(lambda: self.switch_tab("trash"))
 
         self.menuBar().setNativeMenuBar(True)
-        self.settings_menu = self.menuBar().addMenu("Settings")
-        self.open_settings_action = QAction("Preferences", self)
+        self.settings_menu = self.menuBar().addMenu(tr("Settings"))
+        self.open_settings_action = QAction(tr("Preferences"), self)
         self.open_settings_action.triggered.connect(self.open_settings)
         self.settings_menu.addAction(self.open_settings_action)
 
@@ -68,7 +69,7 @@ class MainWindow(QMainWindow):
         content_layout.setSpacing(15)
 
         # --- Title ---
-        self.title_label = QLabel("Active")
+        self.title_label = QLabel(tr("Active"))
         self.title_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         self.title_label.setFixedHeight(30)
 
@@ -97,12 +98,12 @@ class MainWindow(QMainWindow):
         add_btn.clicked.connect(self.add_task_from_button)
         top_bar.addWidget(self.title_label)
         top_bar.addStretch()
-        settings_btn = QToolButton()
-        settings_btn.setText("\u2699\ufe0e")
-        settings_btn.setFixedSize(30, 30)
-        settings_btn.setToolTip("Settings")
-        settings_btn.setAccessibleName("Settings")
-        settings_btn.setStyleSheet('''
+        self.settings_button = QToolButton()
+        self.settings_button.setText("\u2699\ufe0e")
+        self.settings_button.setFixedSize(30, 30)
+        self.settings_button.setToolTip(tr("Settings"))
+        self.settings_button.setAccessibleName(tr("Settings"))
+        self.settings_button.setStyleSheet('''
             QToolButton {
                 border: none;
                 border-radius: 6px;
@@ -115,8 +116,8 @@ class MainWindow(QMainWindow):
                 color: #1C1C1E;
             }
         ''')
-        settings_btn.clicked.connect(self.open_settings)
-        top_bar.addWidget(settings_btn)
+        self.settings_button.clicked.connect(self.open_settings)
+        top_bar.addWidget(self.settings_button)
         top_bar.addWidget(add_btn)
 
         content_layout.addLayout(top_bar)
@@ -207,7 +208,7 @@ class MainWindow(QMainWindow):
         self.sidebar.show()
         self.content_stack.setCurrentIndex(0)
         titles = {"active": "Active", "completed": "Completed", "trash": "Recently Deleted"}
-        self.title_label.setText(titles[tab_name])
+        self.title_label.setText(tr(titles[tab_name]))
         self.refresh_tasks()
 
     def refresh_tasks(self):
@@ -345,28 +346,46 @@ class MainWindow(QMainWindow):
             self.refresh_tasks()
 
     def on_language_changed(self, language):
+        set_ui_language(language)
         self.russian_mode = language == "Русский"
+        self.setWindowTitle(tr("Task Manager"))
+        QApplication.instance().setApplicationName(tr("Task Manager"))
+        self.settings_menu.setTitle(tr("Settings"))
+        self.open_settings_action.setText(tr("Preferences"))
+        self.settings_button.setToolTip(tr("Settings"))
+        self.settings_button.setAccessibleName(tr("Settings"))
+        self.title_label.setText(
+            tr({
+                "active": "Active",
+                "completed": "Completed",
+                "trash": "Recently Deleted",
+            }.get(self.last_task_tab, "Active"))
+        )
+        self.sidebar.retranslate_ui()
+        self.settings_view.retranslate_ui()
+        self.task_list.retranslate_ui()
+        self.task_editor.retranslate_ui()
 
     def show_context_menu(self, pos, task_id):
         menu = QMenu()
         self.selected_task_id = task_id
 
         if self.current_tab == "trash":
-            action_restore = menu.addAction("Restore")
+            action_restore = menu.addAction(tr("Restore"))
             action_restore.triggered.connect(lambda: self.restore_task(self.selected_task_id))
 
-            action_delete = menu.addAction("Delete Forever")
+            action_delete = menu.addAction(tr("Delete Forever"))
             action_delete.triggered.connect(lambda: self.delete_forever(self.selected_task_id))
 
             menu.addSeparator()
 
-            action_restore_all = menu.addAction("Restore All")
+            action_restore_all = menu.addAction(tr("Restore All"))
             action_restore_all.triggered.connect(self.restore_all_tasks)
 
-            action_empty = menu.addAction("Delete All")
+            action_empty = menu.addAction(tr("Delete All"))
             action_empty.triggered.connect(self.empty_trash)
         else:
-            action_delete = menu.addAction("Delete")
+            action_delete = menu.addAction(tr("Delete"))
             action_delete.triggered.connect(self.popup_delete_task)
 
         menu.exec(self.sender().mapToGlobal(pos))

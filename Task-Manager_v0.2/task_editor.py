@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QTextEdit, QSizePolicy, QFrame
 from PyQt6.QtCore import Qt, QTimer, QEvent, QObject
 from PyQt6.QtGui import QShortcut, QKeySequence, QTextCursor
 from PyQt6 import sip
+from localization import tr
 
 class AutoResizeTextEdit(QTextEdit):
     def __init__(self, *args, **kwargs):
@@ -53,6 +54,7 @@ class TaskEditor:
     def __init__(self, main_window):
         self.main_window = main_window
         self._current_edit_finish = None
+        self._active_notes_entry = None
 
     def start_editing(self, title_label, task_id, current_title, focus_on="title"):
         self.close_current_edit(True, skip_refresh=True)
@@ -85,7 +87,8 @@ class TaskEditor:
 
         # --- Notes entry ---
         notes_entry = AutoResizeTextEdit()
-        notes_entry.setPlaceholderText("Notes")
+        notes_entry.setPlaceholderText(tr("Notes"))
+        self._active_notes_entry = notes_entry
         notes_entry.setMinimumWidth(0)
         notes_entry.setMaximumWidth(16777215)
         notes_entry.setStyleSheet('''
@@ -260,6 +263,7 @@ class TaskEditor:
                     due_label.hide()
 
             self._current_edit_finish = None
+            self._active_notes_entry = None
 
             if not skip_refresh:
                 self.main_window.refresh_tasks()
@@ -277,6 +281,11 @@ class TaskEditor:
         filter_obj = EnterFilter(edit, finish)
         edit.installEventFilter(filter_obj)
         edit._enter_filter = filter_obj
+
+    def retranslate_ui(self):
+        notes_entry = self._active_notes_entry
+        if notes_entry is not None and not sip.isdeleted(notes_entry):
+            notes_entry.setPlaceholderText(tr("Notes"))
 
     def close_current_edit(self, save=True, skip_refresh=False):
         if self._current_edit_finish:

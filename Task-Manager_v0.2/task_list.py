@@ -2,15 +2,13 @@ from datetime import datetime, timedelta
 from PyQt6.QtWidgets import QWidget, QSizePolicy, QLabel
 from PyQt6.QtCore import Qt, QTimer
 from task_row import NewTaskRow, TaskRow
+from localization import format_search_datetime, translate_section
 
 
 def format_due_for_search(value):
     if value is None:
         return ""
-    try:
-        return value.strftime("%b %-d %Y %-I:%M %p")
-    except ValueError:
-        return value.strftime("%b %d %Y %I:%M %p")
+    return format_search_datetime(value)
 
 
 class TaskList:
@@ -62,6 +60,8 @@ class TaskList:
         if self.main_window.current_tab == "active":
             for title, section_tasks in self._group_active_tasks(tasks):
                 heading = QLabel(title)
+                heading.setProperty("source_title", title)
+                heading.setText(translate_section(title))
                 heading.setFixedHeight(24)
                 heading.setStyleSheet(
                     "color: #3A3A3C; font-size: 13px; font-weight: 600;"
@@ -258,6 +258,15 @@ class TaskList:
                 )
             ]
         return tasks
+
+    def retranslate_ui(self):
+        for heading in self.section_headings:
+            heading.setText(translate_section(heading.property("source_title")))
+        for index in range(self.task_layout.count()):
+            widget = self.task_layout.itemAt(index).widget()
+            if isinstance(widget, (TaskRow, NewTaskRow)):
+                widget.retranslate_ui()
+        self.update_sticky_heading()
 
     def is_task_pending(self, task_id):
         return task_id in self.main_window.pending_timers

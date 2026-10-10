@@ -3,17 +3,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QDate, QSize
 from PyQt6.QtGui import QFont
+from localization import calendar_month, weekday_abbreviations
 
-
-WEEKDAY_LABELS = {
-    Qt.DayOfWeek.Monday:    ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
-    Qt.DayOfWeek.Tuesday:   ["Tu", "We", "Th", "Fr", "Sa", "Su", "Mo"],
-    Qt.DayOfWeek.Wednesday: ["We", "Th", "Fr", "Sa", "Su", "Mo", "Tu"],
-    Qt.DayOfWeek.Thursday:  ["Th", "Fr", "Sa", "Su", "Mo", "Tu", "We"],
-    Qt.DayOfWeek.Friday:    ["Fr", "Sa", "Su", "Mo", "Tu", "We", "Th"],
-    Qt.DayOfWeek.Saturday:  ["Sa", "Su", "Mo", "Tu", "We", "Th", "Fr"],
-    Qt.DayOfWeek.Sunday:    ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
-}
 
 # ──  Coloring ──────────────────────────────────────────────────────
 WEEKEND_HEADER_COLOR       = "#D93F3F"   # deeper red — matches your screenshot header
@@ -162,7 +153,7 @@ class MiniCalendar(QWidget):
         self.grid.setContentsMargins(0, 0, 0, 0)
         self.grid.setSpacing(0)
 
-        for col, name in enumerate(WEEKDAY_LABELS[self._first_day]):
+        for col, name in enumerate(weekday_abbreviations(self._first_day.value)):
             # weekday index for this column: 0=Mon … 6=Sun
             weekday_idx = (self._first_day.value - 1 + col) % 7
             is_weekend = weekday_idx in (5, 6)  # Sat, Sun
@@ -221,7 +212,7 @@ class MiniCalendar(QWidget):
         for col in range(7):
             item = self.grid.itemAtPosition(0, col)
             if item and item.widget():
-                item.widget().setText(WEEKDAY_LABELS[self._first_day][col])
+                item.widget().setText(weekday_abbreviations(self._first_day.value)[col])
         self._rebuild()
 
     # ── Internal helpers ──────────────────────────────────────────────
@@ -274,7 +265,9 @@ class MiniCalendar(QWidget):
 
         year = self._displayed_month.year()
         month = self._displayed_month.month()
-        self.month_label.setText(self._displayed_month.toString("MMM yyyy"))
+        self.month_label.setText(
+            calendar_month(self._displayed_month.year(), self._displayed_month.month())
+        )
 
         first = QDate(year, month, 1)
         start_offset = self._first_day_offset(first)
