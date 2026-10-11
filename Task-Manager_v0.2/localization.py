@@ -1,8 +1,12 @@
 from datetime import datetime
+from PyQt6.QtCore import QSettings
 
 
 _language = "English"
 SUPPORTED_LANGUAGES = ("English", "Русский")
+_SETTINGS_ORGANIZATION = "TaskManager"
+_SETTINGS_APPLICATION = "Task Manager"
+_LANGUAGE_SETTING_KEY = "language"
 
 _TRANSLATIONS = {
     "Task Manager": "Менеджер Задач",
@@ -39,6 +43,18 @@ _TRANSLATIONS = {
 def available_languages():
     return SUPPORTED_LANGUAGES
 
+
+def load_language():
+    global _language
+    settings = QSettings(_SETTINGS_ORGANIZATION, _SETTINGS_APPLICATION)
+    saved_language = settings.value(_LANGUAGE_SETTING_KEY, "English", type=str)
+    _language = (
+        saved_language
+        if saved_language in SUPPORTED_LANGUAGES
+        else "English"
+    )
+    return _language
+
 _MONTHS_EN = (
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
@@ -61,7 +77,9 @@ _WEEKDAYS_RU = ("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
 
 def set_language(language):
     global _language
-    _language = "Русский" if language == "Русский" else "English"
+    _language = language if language in SUPPORTED_LANGUAGES else "English"
+    settings = QSettings(_SETTINGS_ORGANIZATION, _SETTINGS_APPLICATION)
+    settings.setValue(_LANGUAGE_SETTING_KEY, _language)
 
 
 def current_language():

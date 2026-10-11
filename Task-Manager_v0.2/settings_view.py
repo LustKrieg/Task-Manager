@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QButtonGroup, QFrame, QHBoxLayout, QLabel, QMenu, QPushButton,
     QStackedWidget, QToolButton, QVBoxLayout, QWidget,
 )
-from localization import available_languages, tr
+from localization import available_languages, current_language, tr
 
 
 class LanguageMenuButton(QPushButton):
@@ -34,7 +34,7 @@ class SettingsView(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.current_language = "English"
+        self.current_language = current_language()
         self.setStyleSheet("background: #FFFFFF;")
 
         settings_layout = QHBoxLayout(self)
@@ -190,7 +190,7 @@ class SettingsView(QWidget):
             self.language_menu.addAction(action)
             self.language_actions[language] = action
         self.language_picker.clicked.connect(self._show_language_menu)
-        self.set_language("English", emit=False)
+        self.set_language(self.current_language, emit=False)
         layout.addWidget(
             self.language_picker,
             alignment=Qt.AlignmentFlag.AlignLeft,

@@ -15,12 +15,13 @@ from task_editor import TaskEditor
 from task_list import TaskList
 from task_row import TaskRow
 from settings_view import SettingsView
-from localization import set_language as set_ui_language, tr
+from localization import current_language, load_language, set_language as set_ui_language, tr
 
 
 class MainWindow(QMainWindow):
     def __init__(self, service: TaskService):
         super().__init__()
+        load_language()
         self.current_tab = "active"
         self.last_task_tab = "active"
         self.service = service
@@ -29,7 +30,7 @@ class MainWindow(QMainWindow):
         self.pending_timers = {}
         self.search_text = ""
         self.task_editor = TaskEditor(self)
-        self.russian_mode = False
+        self.russian_mode = current_language() == "Русский"
 
         # --- Central Widget ---
         central = QWidget()
