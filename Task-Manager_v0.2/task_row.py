@@ -368,6 +368,8 @@ class DateTimeControl(QWidget):
     def set_due_date(self, date):
         current_time = self._value.time() if self._value else QTime.currentTime()
         self.set_due_datetime(QDateTime(date, current_time))
+        if self.calendar_popup is not None:
+            self.calendar_popup.close()
 
     def set_due_time(self, time):
         current_date = self._value.date() if self._value else QDateTime.currentDateTime().date()
