@@ -199,7 +199,10 @@ class CalendarPopup(QWidget):
 
     def __init__(self, parent=None, value=None):
         super().__init__(parent)
-        self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(
+            Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
+        )
+        self.setWindowModality(Qt.WindowModality.NonModal)
         self.setStyleSheet("background: white;")
 
         layout = QVBoxLayout(self)
@@ -280,7 +283,10 @@ class TimePopup(QWidget):
 
     def __init__(self, parent=None, value=None):
         super().__init__(parent)
-        self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(
+            Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
+        )
+        self.setWindowModality(Qt.WindowModality.NonModal)
         self.setFixedSize(152, 58)
         self.setStyleSheet("background: white; color: #2C2C2E;")
 
@@ -308,6 +314,9 @@ class DateTimeControl(QWidget):
         self._value = value
         self._last_displayed_month = None
         self.calendar_popup = None
+        self.time_popup = None
+        self._anchor_button = None
+        self._filter_installed = False
 
         self.date_button = QToolButton()
         self.date_button.setText(tr("Add Date"))
@@ -341,12 +350,50 @@ class DateTimeControl(QWidget):
         layout.addWidget(self.time_button)
         self.update_button_texts()
 
+    def eventFilter(self, obj, event):
+        if obj is self.window() and event.type() in (
+            QEvent.Type.Resize,
+            QEvent.Type.Move,
+            QEvent.Type.WindowStateChange,
+        ):
+            QTimer.singleShot(0, self._refresh_popup_position)
+        return super().eventFilter(obj, event)
+
+    def _refresh_popup_position(self):
+        button = self._anchor_button
+        if button is None:
+            return
+
+        popup_position = button.mapToGlobal(button.rect().bottomLeft())
+        if self.calendar_popup is not None and self.calendar_popup.isVisible():
+            self.calendar_popup.move(popup_position.x() - 4, popup_position.y() + 2)
+            self.calendar_popup.raise_()
+        if self.time_popup is not None and self.time_popup.isVisible():
+            self.time_popup.move(popup_position.x() - 4, popup_position.y() + 2)
+            self.time_popup.raise_()
+
+    def _clear_popup_anchor(self):
+        window = self.window()
+        if window is not None and self._filter_installed:
+            window.removeEventFilter(self)
+            self._filter_installed = False
+        self._anchor_button = None
+
     def open_calendar_popup(self):
         button = self.sender()
+        self._anchor_button = button
+
+        if self.window() is not None and not self._filter_installed:
+            self.window().installEventFilter(self)
+            self._filter_installed = True
+
         popup_position = button.mapToGlobal(button.rect().bottomLeft())
 
+        popup_parent = self.window() if self.window() is not None else self
+
         if button is self.date_button:
-            self.calendar_popup = CalendarPopup(self, self._value)
+            self.calendar_popup = CalendarPopup(popup_parent, self._value)
+            self.calendar_popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
             # Reopen on the month the user last scrolled to, if any.
             if self._last_displayed_month is not None:
                 self.calendar_popup.day_view.set_displayed_month(
@@ -354,13 +401,22 @@ class DateTimeControl(QWidget):
                 )
             self.calendar_popup.date_changed.connect(self.set_due_date)
             self.calendar_popup.month_displayed.connect(self._remember_month)
+            self.calendar_popup.destroyed.connect(self._clear_popup_anchor)
             self.calendar_popup.move(popup_position.x() - 4, popup_position.y() + 2)
             self.calendar_popup.show()
+            if self.time_popup is not None:
+                self.time_popup.close()
+                self.time_popup = None
         else:
-            self.time_popup = TimePopup(self, self._value)
+            self.time_popup = TimePopup(popup_parent, self._value)
+            self.time_popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
             self.time_popup.time_changed.connect(self.set_due_time)
+            self.time_popup.destroyed.connect(self._clear_popup_anchor)
             self.time_popup.move(popup_position.x() - 4, popup_position.y() + 2)
             self.time_popup.show()
+            if self.calendar_popup is not None:
+                self.calendar_popup.close()
+                self.calendar_popup = None
 
     def _remember_month(self, year, month):
         self._last_displayed_month = (year, month)
@@ -370,10 +426,16 @@ class DateTimeControl(QWidget):
         self.set_due_datetime(QDateTime(date, current_time))
         if self.calendar_popup is not None:
             self.calendar_popup.close()
+            self.calendar_popup = None
+        self._clear_popup_anchor()
 
     def set_due_time(self, time):
         current_date = self._value.date() if self._value else QDateTime.currentDateTime().date()
         self.set_due_datetime(QDateTime(current_date, time))
+        if self.time_popup is not None:
+            self.time_popup.close()
+            self.time_popup = None
+        self._clear_popup_anchor()
 
     def set_due_datetime(self, value):
         self._value = value.toPyDateTime() if hasattr(value, "toPyDateTime") else value
