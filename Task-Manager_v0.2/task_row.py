@@ -685,7 +685,7 @@ class TaskRow(QWidget):
         )
         self.due_timer = QTimer(self)
         self.due_timer.setSingleShot(True)
-        self.due_timer.timeout.connect(self.update_due_label)
+        self.due_timer.timeout.connect(self.on_due_timer_timeout)
         self.update_due_label()
 
         self.info_button = QToolButton(self)
@@ -766,6 +766,15 @@ class TaskRow(QWidget):
 
         self.due_label.setText(format_due_datetime(self.task.due_at))
         self.due_label.show()
+
+    def on_due_timer_timeout(self):
+        self.update_due_label()
+        if (
+            self.current_tab == "active"
+            and self.task.due_at is not None
+            and self.task.due_at <= datetime.now(self.task.due_at.tzinfo)
+        ):
+            QTimer.singleShot(0, self.main_window.refresh_tasks)
 
     def retranslate_ui(self):
         self.update_due_label()
