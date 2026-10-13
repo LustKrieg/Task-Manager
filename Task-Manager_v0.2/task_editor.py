@@ -276,7 +276,7 @@ class TaskEditor:
         notes_entry._entry_filter = notes_filter
 
         QShortcut(QKeySequence("Ctrl+Return"), edit).activated.connect(lambda: finish(True))
-        QShortcut(QKeySequence("Escape"), edit).activated.connect(lambda: finish(True))
+        QShortcut(QKeySequence("Escape"), edit).activated.connect(lambda: finish(False))
 
         filter_obj = EnterFilter(edit, finish)
         edit.installEventFilter(filter_obj)
