@@ -15,6 +15,7 @@ from task_editor import TaskEditor
 from task_list import TaskList
 from task_row import TaskRow
 from settings_view import SettingsView
+from notification_service import NotificationService
 from localization import current_language, load_language, set_language as set_ui_language, tr
 
 
@@ -30,6 +31,7 @@ class MainWindow(QMainWindow):
         self.pending_timers = {}
         self.search_text = ""
         self.task_editor = TaskEditor(self)
+        self.notification_service = NotificationService()
         self.russian_mode = current_language() == "Русский"
 
         # --- Central Widget ---
@@ -181,6 +183,12 @@ class MainWindow(QMainWindow):
         # --- Load tasks ---
         self.refresh_tasks()
 
+        self.due_notification_timer = QTimer(self)
+        self.due_notification_timer.setInterval(30_000)
+        self.due_notification_timer.timeout.connect(self.check_due_notifications)
+        self.due_notification_timer.start()
+        QTimer.singleShot(0, self.check_due_notifications)
+
         self.setFocus()
 
     def resizeEvent(self, event):
@@ -224,6 +232,13 @@ class MainWindow(QMainWindow):
     def complete_task(self, task_id: int):
         self.service.complete_task(task_id)
         self.refresh_tasks()
+
+    def check_due_notifications(self):
+        for task in self.service.get_due_notification_candidates():
+            if task.id is None or task.due_at is None:
+                continue
+            if self.notification_service.notify_task_due(task.title):
+                self.service.mark_due_notification_sent(task.id, task.due_at)
 
     def undo_task(self, task_id: int):
         self.service.undo_task(task_id)

@@ -28,6 +28,7 @@ class TaskDatabase:
         ''')
             for column, definition in (
                 ("due_at", "TEXT"),
+                ("notified_for_due_at", "TEXT"),
                 ("modified_at", "TEXT"),
                 ("priority", "INTEGER DEFAULT 0"),
                 ("flagged", "INTEGER DEFAULT 0"),
@@ -63,6 +64,39 @@ class TaskDatabase:
             rows = cursor.fetchall()
 
             return [self._to_task(row) for row in rows]
+
+    def get_due_notification_candidates(self, now=None) -> List[Task]:
+        now = now or datetime.now()
+        with self._connect() as conn:
+            rows = conn.execute('''
+                SELECT id, title, completed, created_at, deleted, notes, due_at,
+                       modified_at, priority, flagged, notified_for_due_at
+                FROM tasks
+                WHERE completed = 0 AND deleted = 0 AND due_at IS NOT NULL
+            ''').fetchall()
+
+        candidates = []
+        for row in rows:
+            due_at = self._to_datetime(row[6])
+            if due_at.tzinfo is not None and now.tzinfo is None:
+                comparison_now = now.astimezone(due_at.tzinfo)
+            elif due_at.tzinfo is None and now.tzinfo is not None:
+                comparison_now = now.astimezone().replace(tzinfo=None)
+            else:
+                comparison_now = now
+
+            if due_at <= comparison_now and row[10] != row[6]:
+                candidates.append(self._to_task(row[:10]))
+        return candidates
+
+    def mark_due_notification_sent(self, task_id: int, due_at: datetime) -> None:
+        due_at_text = due_at.isoformat()
+        with self._connect() as conn:
+            conn.execute('''
+                UPDATE tasks
+                SET notified_for_due_at = ?
+                WHERE id = ? AND due_at = ? AND completed = 0 AND deleted = 0
+            ''', (due_at_text, task_id, due_at_text))
         
     def add_task(self, title: str, notes: str = "", due_at: datetime | None = None) -> bool:
         if not title.strip():
@@ -162,7 +196,7 @@ class TaskDatabase:
         with self._connect() as conn:
             conn.execute('''
             UPDATE tasks
-            SET due_at = ?, modified_at = ?
+            SET due_at = ?, notified_for_due_at = NULL, modified_at = ?
             WHERE id = ?
             ''', (due_at.isoformat() if due_at else None, datetime.now().isoformat(), task_id))
 

@@ -35,6 +35,7 @@ _TRANSLATIONS = {
     "Today": "Сегодня",
     "Tomorrow": "Завтра",
     "No Due Date": "Без срока",
+    "Task is due": "Наступил срок задачи",
     "English": "English",
     "Русский": "Русский",
 }

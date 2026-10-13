@@ -16,6 +16,12 @@ class TaskService:
     def get_deleted_tasks(self) -> List[Task]:
         return self.db.get_deleted()
 
+    def get_due_notification_candidates(self, now=None) -> List[Task]:
+        return self.db.get_due_notification_candidates(now)
+
+    def mark_due_notification_sent(self, task_id: int, due_at: datetime) -> None:
+        self.db.mark_due_notification_sent(task_id, due_at)
+
     def add_task(self, title: str, notes: str = "", due_at: datetime | None = None) -> bool:
         if not title.strip():
             return False
