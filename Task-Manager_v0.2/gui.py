@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QPushButton, QToolButton, QLabel,
@@ -30,6 +31,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 790, 500)
         self.pending_timers = {}
         self.search_text = ""
+        self._overdue_task_ids = set()
         self.task_editor = TaskEditor(self)
         self.notification_service = NotificationService()
         self.russian_mode = current_language() == "Русский"
@@ -125,6 +127,20 @@ class MainWindow(QMainWindow):
 
         content_layout.addLayout(top_bar)
 
+        self.due_notification_banner = QLabel()
+        self.due_notification_banner.setWordWrap(True)
+        self.due_notification_banner.setStyleSheet(
+            "color: #1C1C1E; background: #FFF2F0;"
+            "border-left: 3px solid #E30000; padding: 8px 10px;"
+        )
+        self.due_notification_banner.hide()
+        content_layout.addWidget(self.due_notification_banner)
+        self.due_notification_hide_timer = QTimer(self)
+        self.due_notification_hide_timer.setSingleShot(True)
+        self.due_notification_hide_timer.timeout.connect(
+            self.due_notification_banner.hide
+        )
+
         # --- Scroll Area for Tasks ---
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -184,7 +200,7 @@ class MainWindow(QMainWindow):
         self.refresh_tasks()
 
         self.due_notification_timer = QTimer(self)
-        self.due_notification_timer.setInterval(30_000)
+        self.due_notification_timer.setInterval(1_000)
         self.due_notification_timer.timeout.connect(self.check_due_notifications)
         self.due_notification_timer.start()
         QTimer.singleShot(0, self.check_due_notifications)
@@ -221,6 +237,14 @@ class MainWindow(QMainWindow):
         self.refresh_tasks()
 
     def refresh_tasks(self):
+        self._overdue_task_ids = {
+            task.id
+            for task in self.service.get_active_tasks()
+            if task.id is not None
+            and task.due_at is not None
+            and task.due_at.replace(second=0, microsecond=0)
+            < datetime.now(task.due_at.tzinfo).replace(second=0, microsecond=0)
+        }
         scroll_value = self.task_scroll_area.verticalScrollBar().value()
         self.cancel_new_task()
         self.task_editor.close_current_edit(True, skip_refresh=True)
@@ -234,11 +258,31 @@ class MainWindow(QMainWindow):
         self.refresh_tasks()
 
     def check_due_notifications(self):
+        overdue_task_ids = {
+            task.id
+            for task in self.service.get_active_tasks()
+            if task.id is not None
+            and task.due_at is not None
+            and task.due_at.replace(second=0, microsecond=0)
+            < datetime.now(task.due_at.tzinfo).replace(second=0, microsecond=0)
+        }
+        if overdue_task_ids != self._overdue_task_ids:
+            self.refresh_tasks()
+
+        due_titles = []
         for task in self.service.get_due_notification_candidates():
             if task.id is None or task.due_at is None:
                 continue
-            if self.notification_service.notify_task_due(task.title):
-                self.service.mark_due_notification_sent(task.id, task.due_at)
+            self.notification_service.notify_task_due(task.title)
+            self.service.mark_due_notification_sent(task.id, task.due_at)
+            due_titles.append(task.title)
+
+        if due_titles:
+            self.due_notification_banner.setText(
+                f"{tr('Task is due')}: {', '.join(due_titles)}"
+            )
+            self.due_notification_banner.show()
+            self.due_notification_hide_timer.start(10_000)
 
     def undo_task(self, task_id: int):
         self.service.undo_task(task_id)

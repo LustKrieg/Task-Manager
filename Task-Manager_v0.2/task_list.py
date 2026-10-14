@@ -120,7 +120,6 @@ class TaskList:
     @staticmethod
     def _group_active_tasks(tasks):
         now = datetime.now()
-        now_timestamp = now.timestamp()
         today = now.date()
         week_end = today + timedelta(days=6 - today.weekday())
         dated_tasks = sorted(
@@ -134,10 +133,18 @@ class TaskList:
             if matching_tasks:
                 sections.append((title, matching_tasks))
 
-        overdue = [task for task in dated_tasks if task.due_at.timestamp() < now_timestamp]
+        overdue = [
+            task for task in dated_tasks
+            if task.due_at.replace(second=0, microsecond=0)
+            < datetime.now(task.due_at.tzinfo).replace(second=0, microsecond=0)
+        ]
         add_section("Overdue", overdue)
 
-        remaining = [task for task in dated_tasks if task.due_at.timestamp() >= now_timestamp]
+        remaining = [
+            task for task in dated_tasks
+            if task.due_at.replace(second=0, microsecond=0)
+            >= datetime.now(task.due_at.tzinfo).replace(second=0, microsecond=0)
+        ]
         add_section("Today", [task for task in remaining if task.due_at.date() == today])
 
         tomorrow = today + timedelta(days=1)

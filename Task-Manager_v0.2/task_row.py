@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from PyQt6.QtWidgets import (QApplication, QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
     QLineEdit, QFrame, QTimeEdit, QAbstractItemView, QStackedWidget)
@@ -439,6 +439,8 @@ class DateTimeControl(QWidget):
 
     def set_due_datetime(self, value):
         self._value = value.toPyDateTime() if hasattr(value, "toPyDateTime") else value
+        if self._value is not None:
+            self._value = self._value.replace(second=0, microsecond=0)
         self.update_button_texts()
         self.value_changed.emit(self._value)
 
@@ -685,6 +687,7 @@ class TaskRow(QWidget):
         )
         self.due_timer = QTimer(self)
         self.due_timer.setSingleShot(True)
+        self.due_timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.due_timer.timeout.connect(self.on_due_timer_timeout)
         self.update_due_label()
 
@@ -757,23 +760,26 @@ class TaskRow(QWidget):
             return
 
         now = datetime.now(self.task.due_at.tzinfo) if self.task.due_at.tzinfo else datetime.now()
-        is_overdue = self.task.due_at <= now
+        due_minute = self.task.due_at.replace(second=0, microsecond=0)
+        now_minute = now.replace(second=0, microsecond=0)
+        is_overdue = due_minute < now_minute
         color = "#E30000" if self.current_tab == "active" and is_overdue else "#8E8E93"
         self.due_label.setStyleSheet(f"color: {color}; font-size: 11px;")
         if self.current_tab == "active" and not is_overdue:
-            milliseconds_until_due = int((self.task.due_at - now).total_seconds() * 1000)
-            self.due_timer.start(min(milliseconds_until_due, 2_147_483_647))
+            next_minute = due_minute + timedelta(minutes=1)
+            milliseconds_until_overdue = int((next_minute - now).total_seconds() * 1000)
+            self.due_timer.start(min(max(milliseconds_until_overdue, 1), 2_147_483_647))
 
         self.due_label.setText(format_due_datetime(self.task.due_at))
         self.due_label.show()
 
     def on_due_timer_timeout(self):
         self.update_due_label()
-        if (
-            self.current_tab == "active"
-            and self.task.due_at is not None
-            and self.task.due_at <= datetime.now(self.task.due_at.tzinfo)
-        ):
+        if self.task.due_at is None or self.current_tab != "active":
+            return
+        due_minute = self.task.due_at.replace(second=0, microsecond=0)
+        now = datetime.now(self.task.due_at.tzinfo)
+        if due_minute < now.replace(second=0, microsecond=0):
             QTimer.singleShot(0, self.main_window.refresh_tasks)
 
     def retranslate_ui(self):
