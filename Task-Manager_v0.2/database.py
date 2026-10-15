@@ -38,6 +38,25 @@ class TaskDatabase:
                 except sqlite3.OperationalError as error:
                     if "duplicate column name" not in str(error):
                         raise
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS ai_conversations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS ai_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    conversation_id INTEGER NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (conversation_id)
+                        REFERENCES ai_conversations (id) ON DELETE CASCADE
+                )
+            ''')
 
     @staticmethod
     def _to_datetime(value):
@@ -245,3 +264,67 @@ class TaskDatabase:
                 return None
 
             return self._to_task(row)
+
+    def create_chat_conversation(self) -> int:
+        created_at = datetime.now().isoformat(timespec="seconds")
+        with self._connect() as conn:
+            cursor = conn.execute('''
+                INSERT INTO ai_conversations (title, created_at, updated_at)
+                VALUES ('', ?, ?)
+            ''', (created_at, created_at))
+            return cursor.lastrowid
+
+    def get_chat_conversations(self):
+        with self._connect() as conn:
+            rows = conn.execute('''
+                SELECT id, title, created_at, updated_at
+                FROM ai_conversations
+                ORDER BY updated_at DESC, id DESC
+            ''').fetchall()
+        return [
+            {"id": row[0], "title": row[1], "created_at": row[2], "updated_at": row[3]}
+            for row in rows
+        ]
+
+    def get_chat_messages(self, conversation_id: int):
+        with self._connect() as conn:
+            rows = conn.execute('''
+                SELECT id, role, content, created_at
+                FROM ai_messages
+                WHERE conversation_id = ?
+                ORDER BY id
+            ''', (conversation_id,)).fetchall()
+        return [
+            {"id": row[0], "role": row[1], "content": row[2], "created_at": row[3]}
+            for row in rows
+        ]
+
+    def add_chat_message(self, conversation_id: int, content: str, role: str = "user") -> None:
+        content = content.strip()
+        if not content:
+            return
+        if role not in ("user", "assistant"):
+            raise ValueError("Chat message role must be user or assistant")
+
+        created_at = datetime.now().isoformat(timespec="seconds")
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT title FROM ai_conversations WHERE id = ?",
+                (conversation_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError("Chat conversation does not exist")
+
+            conn.execute('''
+                INSERT INTO ai_messages (conversation_id, role, content, created_at)
+                VALUES (?, ?, ?, ?)
+            ''', (conversation_id, role, content, created_at))
+
+            title = row[0]
+            if not title and role == "user":
+                title = content.splitlines()[0][:48]
+            conn.execute('''
+                UPDATE ai_conversations
+                SET title = ?, updated_at = ?
+                WHERE id = ?
+            ''', (title, created_at, conversation_id))

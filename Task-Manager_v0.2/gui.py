@@ -16,6 +16,7 @@ from task_editor import TaskEditor
 from task_list import TaskList
 from task_row import TaskRow
 from settings_view import SettingsView
+from ai_chat_view import AIChatView
 from notification_service import NotificationService
 from localization import current_language, load_language, set_language as set_ui_language, tr
 
@@ -123,6 +124,26 @@ class MainWindow(QMainWindow):
         ''')
         self.settings_button.clicked.connect(self.open_settings)
         top_bar.addWidget(self.settings_button)
+        self.ai_chat_button = QToolButton()
+        self.ai_chat_button.setText("✦")
+        self.ai_chat_button.setFixedSize(30, 30)
+        self.ai_chat_button.setToolTip(tr("AI Chat"))
+        self.ai_chat_button.setAccessibleName(tr("AI Chat"))
+        self.ai_chat_button.setStyleSheet('''
+            QToolButton {
+                border: none;
+                border-radius: 6px;
+                background: transparent;
+                color: #636366;
+                font-size: 17px;
+            }
+            QToolButton:hover {
+                background: #E9EAEC;
+                color: #1C1C1E;
+            }
+        ''')
+        self.ai_chat_button.clicked.connect(self.open_ai_chat)
+        top_bar.addWidget(self.ai_chat_button)
         top_bar.addWidget(add_btn)
 
         content_layout.addLayout(top_bar)
@@ -187,9 +208,14 @@ class MainWindow(QMainWindow):
             lambda: self.switch_tab(self.last_task_tab)
         )
         self.settings_view.language_changed.connect(self.on_language_changed)
+        self.ai_chat_view = AIChatView(self.service)
+        self.ai_chat_view.back_requested.connect(
+            lambda: self.switch_tab(self.last_task_tab)
+        )
 
         self.content_stack.addWidget(content)
         self.content_stack.addWidget(self.settings_view)
+        self.content_stack.addWidget(self.ai_chat_view)
 
         # --- Add sidebar and content to main layout ---
         main_layout.addWidget(self.sidebar)
@@ -219,6 +245,10 @@ class MainWindow(QMainWindow):
         self.current_tab = "settings"
         self.sidebar.hide()
         self.content_stack.setCurrentIndex(1)
+
+    def open_ai_chat(self):
+        self.sidebar.hide()
+        self.content_stack.setCurrentWidget(self.ai_chat_view)
 
     def switch_tab(self, tab_name: str):
         for tab, name in [(self.active_tab, "active"), 
@@ -414,6 +444,8 @@ class MainWindow(QMainWindow):
         self.open_settings_action.setText(tr("Preferences"))
         self.settings_button.setToolTip(tr("Settings"))
         self.settings_button.setAccessibleName(tr("Settings"))
+        self.ai_chat_button.setToolTip(tr("AI Chat"))
+        self.ai_chat_button.setAccessibleName(tr("AI Chat"))
         self.title_label.setText(
             tr({
                 "active": "Active",
@@ -423,6 +455,7 @@ class MainWindow(QMainWindow):
         )
         self.sidebar.retranslate_ui()
         self.settings_view.retranslate_ui()
+        self.ai_chat_view.retranslate_ui()
         self.task_list.retranslate_ui()
         self.task_editor.retranslate_ui()
 

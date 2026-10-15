@@ -71,6 +71,18 @@ class TaskService:
     def get_task(self, task_id: int) -> Task | None:
         return self.db.get_task(task_id)
 
+    def create_chat_conversation(self) -> int:
+        return self.db.create_chat_conversation()
+
+    def get_chat_conversations(self):
+        return self.db.get_chat_conversations()
+
+    def get_chat_messages(self, conversation_id: int):
+        return self.db.get_chat_messages(conversation_id)
+
+    def add_chat_message(self, conversation_id: int, content: str) -> None:
+        self.db.add_chat_message(conversation_id, content)
+
 if __name__ == "__main__":
     db = TaskDatabase()
     db.create_table()
