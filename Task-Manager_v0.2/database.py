@@ -12,7 +12,9 @@ class TaskDatabase:
         self.db_path = str(database_path)
 
     def _connect(self):
-        return sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
 
     def create_table(self) -> None:
         with self._connect() as conn:
@@ -328,3 +330,7 @@ class TaskDatabase:
                 SET title = ?, updated_at = ?
                 WHERE id = ?
             ''', (title, created_at, conversation_id))
+
+    def delete_chat_conversation(self, conversation_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM ai_conversations WHERE id = ?", (conversation_id,))

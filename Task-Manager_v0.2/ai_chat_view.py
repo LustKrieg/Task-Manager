@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
@@ -83,6 +84,8 @@ class AIChatView(QWidget):
         self.conversation_list.currentItemChanged.connect(
             self._on_conversation_selected
         )
+        self.conversation_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.conversation_list.customContextMenuRequested.connect(self._on_conversation_context_menu)
         sidebar_layout.addWidget(self.conversation_list, 1)
 
         self.history_empty_label = QLabel(tr("Start a new chat to get going."))
@@ -227,6 +230,26 @@ class AIChatView(QWidget):
     def _on_conversation_selected(self, current, _previous):
         if current is not None:
             self._load_conversation(current)
+
+    def _on_conversation_context_menu(self, pos):
+        item = self.conversation_list.itemAt(pos)
+        if item is None:
+            return
+        conversation_id = item.data(Qt.ItemDataRole.UserRole)
+
+        menu = QMenu(self.conversation_list)
+        delete_action = menu.addAction(tr("Delete Chat"))
+        delete_action.triggered.connect(
+            lambda: self._delete_conversation(conversation_id)
+        )
+        menu.exec(self.conversation_list.mapToGlobal(pos))
+
+    def _delete_conversation(self, conversation_id):
+        keep_id = self.current_conversation_id
+        if keep_id == conversation_id:
+            keep_id = None
+        self.service.delete_chat_conversation(conversation_id)
+        self._reload_conversations(select_id=keep_id)
 
     def _load_conversation(self, item):
         self.current_conversation_id = item.data(Qt.ItemDataRole.UserRole)

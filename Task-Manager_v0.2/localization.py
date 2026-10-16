@@ -46,6 +46,7 @@ _TRANSLATIONS = {
     "Task is due": "Наступил срок задачи",
     "English": "English",
     "Русский": "Русский",
+    "Delete Chat": "Удалить чат",
 }
 
 
