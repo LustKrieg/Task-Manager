@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from localization import tr
+from styles import ROUNDED_MENU_STYLE
 
 
 class AIChatView(QWidget):
@@ -238,6 +239,8 @@ class AIChatView(QWidget):
         conversation_id = item.data(Qt.ItemDataRole.UserRole)
 
         menu = QMenu(self.conversation_list)
+        menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        menu.setStyleSheet(ROUNDED_MENU_STYLE)
         delete_action = menu.addAction(tr("Delete Chat"))
         delete_action.triggered.connect(
             lambda: self._delete_conversation(conversation_id)

@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QFont
 from database import TaskDatabase
 from service import TaskService
+from styles import ROUNDED_MENU_STYLE
 
 # From other files
 from sidebar import Sidebar
@@ -461,6 +462,8 @@ class MainWindow(QMainWindow):
 
     def show_context_menu(self, pos, task_id):
         menu = QMenu()
+        menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        menu.setStyleSheet(ROUNDED_MENU_STYLE)
         self.selected_task_id = task_id
 
         if self.current_tab == "trash":
