@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QFrame,
@@ -17,6 +17,40 @@ from PyQt6.QtWidgets import (
 from localization import tr
 from styles import ROUNDED_MENU_STYLE
 
+class MessageBubble(QWidget):
+    def __init__(self, text, is_user, parent=None):
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        bubble = QLabel(text)
+        bubble.setWordWrap(True)
+        bubble.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        bubble.setMaximumWidth(440)
+
+        if is_user:
+            bubble.setStyleSheet(
+                "QLabel {"
+                "background: #DDEBFF; color: #1C1C1E;"
+                "border-radius: 14px; padding: 8px 12px;"
+                "font-size: 13px;"
+                "}"
+            )
+            layout.addStretch(1)
+            layout.addWidget(bubble, 0)
+        else:
+            bubble.setStyleSheet(
+                "QLabel {"
+                "background: #F1F2F4; color: #1C1C1E;"
+                "border-radius: 14px; padding: 8px 12px;"
+                "font-size: 13px;"
+                "}"
+            )
+            layout.addWidget(bubble, 0)
+            layout.addStretch(1)
 
 class AIChatView(QWidget):
     back_requested = pyqtSignal()
@@ -143,19 +177,30 @@ class AIChatView(QWidget):
         chat_header.addWidget(self.new_chat_button)
         chat_layout.addLayout(chat_header)
 
-        self.message_list = QListWidget()
-        self.message_list.setWordWrap(True)
-        self.message_list.setSpacing(8)
-        self.message_list.setStyleSheet("""
-            QListWidget { border: none; background: #FFFFFF; outline: none; }
-            QListWidget::item {
-                color: #202124;
-                background: #F1F2F4;
-                border-radius: 8px;
-                padding: 10px 12px;
+        self.message_scroll = QScrollArea()
+        self.message_scroll.setWidgetResizable(True)
+        self.message_scroll.setStyleSheet("""
+            QScrollArea { border: none; background: #FFFFFF; }
+            QScrollBar:vertical {
+                background: transparent; width: 8px; margin: 0;
+            }
+            QScrollBar::handle:vertical {
+                background: #C1C1C6; border-radius: 4px; min-height: 20px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0;
             }
         """)
-        chat_layout.addWidget(self.message_list, 1)
+
+        self.message_container = QWidget()
+        self.message_container.setStyleSheet("background: #FFFFFF;")
+        self.message_layout = QVBoxLayout(self.message_container)
+        self.message_layout.setContentsMargins(4, 4, 4, 4)
+        self.message_layout.setSpacing(8)
+        self.message_layout.addStretch(1)
+
+        self.message_scroll.setWidget(self.message_container)
+        chat_layout.addWidget(self.message_scroll, 1)
 
         composer = QFrame()
         composer.setStyleSheet("""
@@ -223,7 +268,7 @@ class AIChatView(QWidget):
 
         if selected_item is None:
             self.current_conversation_id = None
-            self.message_list.clear()
+            self.message_input.clear()
             self.title_label.setText(tr("AI Chat"))
         else:
             self._load_conversation(selected_item)
@@ -256,13 +301,35 @@ class AIChatView(QWidget):
 
     def _load_conversation(self, item):
         self.current_conversation_id = item.data(Qt.ItemDataRole.UserRole)
-        self.message_list.clear()
+        self._clear_messages()
         for message in self.service.get_chat_messages(self.current_conversation_id):
-            speaker = tr("You") if message["role"] == "user" else "AI"
-            entry = QListWidgetItem(f"{speaker}\n{message['content']}")
-            self.message_list.addItem(entry)
+            self._append_bubble(
+                message["content"],
+                is_user=(message["role"] == "user"),
+            )
         self.title_label.setText(item.text())
-        self.message_list.scrollToBottom()
+        self._scroll_to_bottom()
+
+    def _clear_messages(self):
+        while self.message_layout.count() > 1:
+            item = self.message_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+    def _append_bubble(self, text, is_user):
+        bubble = MessageBubble(text, is_user)
+        self.message_layout.insertWidget(
+            self.message_layout.count() - 1, bubble
+        )
+
+    def _scroll_to_bottom(self):
+        QTimer.singleShot(
+            0,
+            lambda: self.message_scroll.verticalScrollBar().setValue(
+                self.message_scroll.verticalScrollBar().maximum()
+            ),
+        )
 
     def start_new_chat(self):
         conversation_id = self.service.create_chat_conversation()
