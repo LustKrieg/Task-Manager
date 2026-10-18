@@ -205,6 +205,12 @@ class TaskEditor:
                     editing_row.task.due_at = new_due_at
                     editing_row.update_due_label()
 
+            # Close any date/time popups that may still be showing for this row.
+            if editing_row is not None:
+                from task_row import DateTimeControl
+                for control in editing_row.findChildren(DateTimeControl):
+                    control.close_popups()
+
             # --- Remove Title Editor ---
             if not sip.isdeleted(edit):
                 left_layout.removeWidget(edit)

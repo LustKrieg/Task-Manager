@@ -464,6 +464,15 @@ class DateTimeControl(QWidget):
     def retranslate_ui(self):
         self.update_button_texts()
 
+    def close_popups(self):
+        if self.calendar_popup is not None:
+            self.calendar_popup.close()
+            self.calendar_popup = None
+        if self.time_popup is not None:
+            self.time_popup.close()
+            self.time_popup = None
+        self._clear_popup_anchor()
+
     def get_due_datetime(self):
         return self._value
 
@@ -899,6 +908,7 @@ class TaskRow(QWidget):
             text_edits.append(notes_lbl)
 
         def save_popup_details():
+            date_time_control.close_popups()
             new_title = title_lbl.toPlainText().strip()
             new_notes = notes_lbl.toPlainText().strip()
             new_due_at = date_time_control.get_due_datetime()
