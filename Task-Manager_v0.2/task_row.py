@@ -324,7 +324,7 @@ class TimePopup(QWidget):
         '''
 
         self.up_button = QToolButton(self)
-        self.up_button.setText("\u2303")   # ⌃ chevron
+        self.up_button.setText("\u25B2")   # ▲
         self.up_button.setFixedSize(20, 16)
         self.up_button.setGeometry(118, 12, 20, 16)
         self.up_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -332,7 +332,7 @@ class TimePopup(QWidget):
         self.up_button.clicked.connect(self.time_edit.stepUp)
 
         self.down_button = QToolButton(self)
-        self.down_button.setText("\u2304") # ⌄ chevron
+        self.down_button.setText("\u25BC") # ▼
         self.down_button.setFixedSize(20, 16)
         self.down_button.setGeometry(118, 28, 20, 16)
         self.down_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -465,10 +465,8 @@ class DateTimeControl(QWidget):
     def set_due_time(self, time):
         current_date = self._value.date() if self._value else QDateTime.currentDateTime().date()
         self.set_due_datetime(QDateTime(current_date, time))
-        if self.time_popup is not None:
-            self.time_popup.close()
-            self.time_popup = None
-        self._clear_popup_anchor()
+        # Leave the popup open; it closes on click-outside, Esc, or when the
+        # task editor finishes.
 
     def set_due_datetime(self, value):
         self._value = value.toPyDateTime() if hasattr(value, "toPyDateTime") else value
