@@ -52,6 +52,19 @@ class MessageBubble(QWidget):
             layout.addWidget(bubble, 0)
             layout.addStretch(1)
 
+class ChatInput(QPlainTextEdit):
+    send_requested = pyqtSignal()
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                super().keyPressEvent(event)   # shift+enter → newline
+                return
+            self.send_requested.emit()          # enter → send
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
 class AIChatView(QWidget):
     back_requested = pyqtSignal()
 
@@ -215,6 +228,27 @@ class AIChatView(QWidget):
                 color: #1C1C1E;
                 padding: 8px 10px;
             }
+            QPlainTextEdit QScrollBar:vertical {
+                background: transparent;
+                width: 6px;
+                margin: 4px 2px 4px 0;
+            }
+            QPlainTextEdit QScrollBar::handle:vertical {
+                background: #C1C1C6;
+                border-radius: 3px;
+                min-height: 12px;
+            }
+            QPlainTextEdit QScrollBar::handle:vertical:hover {
+                background: #8E8E93;
+            }
+            QPlainTextEdit QScrollBar::add-line:vertical,
+            QPlainTextEdit QScrollBar::sub-line:vertical {
+                height: 0;
+            }
+            QPlainTextEdit QScrollBar::add-page:vertical,
+            QPlainTextEdit QScrollBar::sub-page:vertical {
+                background: transparent;
+            }
             QPushButton {
                 border: none;
                 border-radius: 6px;
@@ -228,10 +262,11 @@ class AIChatView(QWidget):
         composer_layout = QHBoxLayout(composer)
         composer_layout.setContentsMargins(8, 6, 8, 6)
         composer_layout.setSpacing(8)
-        self.message_input = QPlainTextEdit()
+        self.message_input = ChatInput()
         self.message_input.setPlaceholderText(tr("Message"))
         self.message_input.setFixedHeight(54)
         self.message_input.textChanged.connect(self._update_send_state)
+        self.message_input.send_requested.connect(self.send_message)
         composer_layout.addWidget(self.message_input, 1)
 
         self.send_button = QPushButton("\u2191")
@@ -243,8 +278,6 @@ class AIChatView(QWidget):
         chat_layout.addWidget(composer)
         root_layout.addWidget(chat_panel, 1)
 
-        self.send_shortcut = QShortcut(QKeySequence("Ctrl+Return"), self.message_input)
-        self.send_shortcut.activated.connect(self.send_message)
         self._reload_conversations()
         self._update_send_state()
 
