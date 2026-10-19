@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from PyQt6.QtWidgets import (QApplication, QWidget, QSizePolicy,
     QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QToolButton, QTextEdit,
-    QLineEdit, QFrame, QTimeEdit, QAbstractItemView, QStackedWidget)
+    QLineEdit, QFrame, QTimeEdit, QAbstractItemView, QStackedWidget, QAbstractSpinBox)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPoint, QPointF, QTime, QDateTime, QEvent
 from PyQt6.QtGui import QTextOption, QPainter, QPainterPath, QColor, QPolygonF, QShortcut, QKeySequence
 from localization import (
@@ -294,17 +294,50 @@ class TimePopup(QWidget):
         self.time_edit.setDisplayFormat("HH:mm" if is_russian() else "h:mm AP")
         self.time_edit.setTime(value.time() if value else QTime.currentTime())
         self.time_edit.setGeometry(8, 8, 136, 42)
+        self.time_edit.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.time_edit.setStyleSheet('''
             QTimeEdit {
                 color: #2C2C2E;
                 background: #F2F2F7;
                 border: none;
                 border-radius: 6px;
-                padding: 4px 8px;
+                padding: 4px 28px 4px 10px;
+                font-size: 14px;
             }
         ''')
         self.time_edit.timeChanged.connect(self.time_changed.emit)
 
+        button_style = '''
+            QToolButton {
+                border: none;
+                background: transparent;
+                color: #8E8E93;
+                font-size: 15px;
+                font-weight: 600;
+            }
+            QToolButton:hover {
+                color: #1C1C1E;
+            }
+            QToolButton:pressed {
+                color: #3A3A3C;
+            }
+        '''
+
+        self.up_button = QToolButton(self)
+        self.up_button.setText("\u2303")   # ⌃ chevron
+        self.up_button.setFixedSize(20, 16)
+        self.up_button.setGeometry(118, 12, 20, 16)
+        self.up_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.up_button.setStyleSheet(button_style)
+        self.up_button.clicked.connect(self.time_edit.stepUp)
+
+        self.down_button = QToolButton(self)
+        self.down_button.setText("\u2304") # ⌄ chevron
+        self.down_button.setFixedSize(20, 16)
+        self.down_button.setGeometry(118, 28, 20, 16)
+        self.down_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.down_button.setStyleSheet(button_style)
+        self.down_button.clicked.connect(self.time_edit.stepDown)
 
 class DateTimeControl(QWidget):
     value_changed = pyqtSignal(object)
