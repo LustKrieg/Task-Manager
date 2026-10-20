@@ -350,6 +350,7 @@ class DateTimeControl(QWidget):
         self.time_popup = None
         self._anchor_button = None
         self._filter_installed = False
+        self._focus_after_popup = None
 
         self.date_button = QToolButton()
         self.date_button.setText(tr("Add Date"))
@@ -454,6 +455,29 @@ class DateTimeControl(QWidget):
     def _remember_month(self, year, month):
         self._last_displayed_month = (year, month)
 
+    def set_focus_after_popup(self, widget):
+        """Focus target restored after any popup interaction closes."""
+        self._focus_after_popup = widget
+
+    def _restore_focus(self):
+        target = self._focus_after_popup
+        if target is None:
+            return False
+        try:
+            target.setFocus()
+            if hasattr(target, "moveCursor"):
+                from PyQt6.QtGui import QTextCursor
+                target.moveCursor(QTextCursor.MoveOperation.End)
+            elif hasattr(target, "setCursorPosition"):
+                try:
+                    target.setCursorPosition(len(target.text()))
+                except (AttributeError, RuntimeError):
+                    pass
+            return True
+        except RuntimeError:
+            self._focus_after_popup = None
+            return False
+
     def set_due_date(self, date):
         current_time = self._value.time() if self._value else QTime.currentTime()
         self.set_due_datetime(QDateTime(date, current_time))
@@ -461,10 +485,12 @@ class DateTimeControl(QWidget):
             self.calendar_popup.close()
             self.calendar_popup = None
         self._clear_popup_anchor()
+        self._restore_focus()
 
     def set_due_time(self, time):
         current_date = self._value.date() if self._value else QDateTime.currentDateTime().date()
         self.set_due_datetime(QDateTime(current_date, time))
+        self._restore_focus()
         # Leave the popup open; it closes on click-outside, Esc, or when the
         # task editor finishes.
 

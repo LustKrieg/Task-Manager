@@ -334,3 +334,11 @@ class TaskDatabase:
     def delete_chat_conversation(self, conversation_id: int) -> None:
         with self._connect() as conn:
             conn.execute("DELETE FROM ai_conversations WHERE id = ?", (conversation_id,))
+
+    def update_chat_conversation_title(self, conversation_id: int, title: str) -> None:
+        title = title.strip()
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE ai_conversations SET title = ? WHERE id = ?",
+                (title, conversation_id),
+            )

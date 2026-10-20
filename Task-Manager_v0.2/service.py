@@ -86,6 +86,9 @@ class TaskService:
     def delete_chat_conversation(self, conversation_id: int) -> None:
         self.db.delete_chat_conversation(conversation_id)
 
+    def update_chat_conversation_title(self, conversation_id: int, title: str) -> None:
+        self.db.update_chat_conversation_title(conversation_id, title)
+
 if __name__ == "__main__":
     db = TaskDatabase()
     db.create_table()

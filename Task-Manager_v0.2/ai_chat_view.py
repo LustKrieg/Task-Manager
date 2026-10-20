@@ -3,6 +3,7 @@ from PyQt6.QtGui import QFont, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -315,15 +316,35 @@ class AIChatView(QWidget):
         if item is None:
             return
         conversation_id = item.data(Qt.ItemDataRole.UserRole)
+        current_title = item.text()
 
         menu = QMenu(self.conversation_list)
         menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         menu.setStyleSheet(ROUNDED_MENU_STYLE)
-        delete_action = menu.addAction(tr("Delete Chat"))
-        delete_action.triggered.connect(
-            lambda: self._delete_conversation(conversation_id)
+        menu.addAction(
+            tr("Rename"),
+            lambda: self._rename_conversation(conversation_id, current_title),
+        )
+        menu.addAction(
+            tr("Delete Chat"),
+            lambda: self._delete_conversation(conversation_id),
         )
         menu.exec(self.conversation_list.mapToGlobal(pos))
+
+    def _rename_conversation(self, conversation_id, current_title):
+        new_title, ok = QInputDialog.getText(
+            self,
+            tr("Rename Chat"),
+            tr("Enter a new name:"),
+            text=current_title,
+        )
+        if not ok:
+            return
+        new_title = new_title.strip()
+        if not new_title or new_title == current_title:
+            return
+        self.service.update_chat_conversation_title(conversation_id, new_title)
+        self._reload_conversations(select_id=conversation_id)
 
     def _delete_conversation(self, conversation_id):
         keep_id = self.current_conversation_id

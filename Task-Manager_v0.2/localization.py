@@ -47,6 +47,9 @@ _TRANSLATIONS = {
     "English": "English",
     "Русский": "Русский",
     "Delete Chat": "Удалить чат",
+    "Rename": "Переименовать",
+    "Rename Chat": "Переименовать чат",
+    "Enter a new name:": "Введите новое имя:",
 }
 
 
