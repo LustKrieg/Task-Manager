@@ -80,8 +80,8 @@ class TaskService:
     def get_chat_messages(self, conversation_id: int):
         return self.db.get_chat_messages(conversation_id)
 
-    def add_chat_message(self, conversation_id: int, content: str) -> None:
-        self.db.add_chat_message(conversation_id, content)
+    def add_chat_message(self, conversation_id: int, content: str, role: str = "user") -> None:
+        self.db.add_chat_message(conversation_id, content, role=role)
 
     def delete_chat_conversation(self, conversation_id: int) -> None:
         self.db.delete_chat_conversation(conversation_id)

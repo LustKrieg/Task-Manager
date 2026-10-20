@@ -1,5 +1,5 @@
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QKeySequence, QShortcut
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QEvent
+from PyQt6.QtGui import QFont, QKeySequence, QShortcut, QTextCursor
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -11,47 +11,132 @@ from PyQt6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
+    QTextEdit,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 from localization import tr
 from styles import ROUNDED_MENU_STYLE
+from ai_provider import OllamaProvider
+from ai_worker import AIWorker
 
 class MessageBubble(QWidget):
-    def __init__(self, text, is_user, parent=None):
+    edit_saved = pyqtSignal(int, str)
+
+    def __init__(self, text, is_user, message_id=None, parent=None):
         super().__init__(parent)
+        self.text = text
+        self.is_user = is_user
+        self.message_id = message_id
+        self.bubble = None
+        self._editor = None
+        self._build_display()
+
+    def _clear_layout(self):
+        if self.layout() is not None:
+            QWidget().setLayout(self.layout())
+
+    def _build_display(self):
+        self._clear_layout()
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        bubble = QLabel(text)
-        bubble.setWordWrap(True)
-        bubble.setTextInteractionFlags(
+        self.bubble = QLabel(self.text)
+        self.bubble.setWordWrap(True)
+        self.bubble.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        bubble.setMaximumWidth(440)
+        self.bubble.setMaximumWidth(440)
 
-        if is_user:
-            bubble.setStyleSheet(
-                "QLabel {"
-                "background: #DDEBFF; color: #1C1C1E;"
-                "border-radius: 14px; padding: 8px 12px;"
-                "font-size: 13px;"
-                "}"
+        if self.is_user:
+            self.bubble.setStyleSheet(
+                "QLabel { background: #DDEBFF; color: #1C1C1E;"
+                "border-radius: 14px; padding: 8px 12px; font-size: 13px; }"
             )
             layout.addStretch(1)
-            layout.addWidget(bubble, 0)
+            layout.addWidget(self.bubble, 0)
         else:
-            bubble.setStyleSheet(
-                "QLabel {"
-                "background: #F1F2F4; color: #1C1C1E;"
-                "border-radius: 14px; padding: 8px 12px;"
-                "font-size: 13px;"
-                "}"
+            self.bubble.setStyleSheet(
+                "QLabel { background: #F1F2F4; color: #1C1C1E;"
+                "border-radius: 14px; padding: 8px 12px; font-size: 13px; }"
             )
-            layout.addWidget(bubble, 0)
+            layout.addWidget(self.bubble, 0)
             layout.addStretch(1)
+
+        if self.is_user and self.message_id is not None:
+            self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            self.customContextMenuRequested.connect(self._show_menu)
+
+    def set_text(self, text):
+        self.text = text
+        if self.bubble is not None:
+            self.bubble.setText(text)
+            self.bubble.updateGeometry()
+
+    # ── Edit ─────────────────────────────────────────────────────
+    def _show_menu(self, pos):
+        from styles import ROUNDED_MENU_STYLE
+        menu = QMenu(self)
+        menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        menu.setStyleSheet(ROUNDED_MENU_STYLE)
+        menu.addAction(tr("Edit"), self._enter_edit)
+        menu.exec(self.mapToGlobal(pos))
+
+    def _enter_edit(self):
+        self._clear_layout()
+        self.bubble = None
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addStretch(1)
+
+        self._editor = QTextEdit()
+        self._editor.setPlainText(self.text)
+        self._editor.setFixedWidth(440)
+        self._editor.setFixedHeight(80)
+        self._editor.setStyleSheet(
+            "QTextEdit { background: #DDEBFF; color: #1C1C1E;"
+            "border-radius: 14px; padding: 8px 12px; font-size: 13px;"
+            "border: 1px solid #A6C4E6; }"
+        )
+        self._editor.installEventFilter(self)
+        layout.addWidget(self._editor, 0)
+        QTimer.singleShot(0, self._focus_editor)
+
+    def _focus_editor(self):
+        if self._editor is not None:
+            self._editor.setFocus()
+            self._editor.moveCursor(QTextCursor.MoveOperation.End)
+
+    def eventFilter(self, obj, event):
+        if obj is self._editor and event.type() == QEvent.Type.KeyPress:
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                    return False
+                self._save_edit()
+                return True
+            if event.key() == Qt.Key.Key_Escape:
+                self._cancel_edit()
+                return True
+        return super().eventFilter(obj, event)
+
+    def _save_edit(self):
+        if self._editor is None:
+            return
+        new_text = self._editor.toPlainText().strip()
+        self._editor = None
+        if not new_text:
+            self._build_display()
+            return
+        self.text = new_text
+        self._build_display()
+        self.edit_saved.emit(self.message_id, new_text)
+
+    def _cancel_edit(self):
+        self._editor = None
+        self._build_display()
 
 class ChatInput(QPlainTextEdit):
     send_requested = pyqtSignal()
@@ -72,6 +157,11 @@ class AIChatView(QWidget):
     def __init__(self, service, parent=None):
         super().__init__(parent)
         self.service = service
+        self.provider = OllamaProvider()
+        self._ai_worker = None
+        self._streaming_bubble = None
+        self._streaming_bubble = None
+        self._streaming_text = ""
         self.current_conversation_id = None
         self.setStyleSheet("background: #FFFFFF;")
 
@@ -350,6 +440,8 @@ class AIChatView(QWidget):
         keep_id = self.current_conversation_id
         if keep_id == conversation_id:
             keep_id = None
+        self._clear_messages()
+        self.current_conversation_id = None
         self.service.delete_chat_conversation(conversation_id)
         self._reload_conversations(select_id=keep_id)
 
@@ -365,11 +457,12 @@ class AIChatView(QWidget):
         self._scroll_to_bottom()
 
     def _clear_messages(self):
-        while self.message_layout.count() > 1:
+        while self.message_layout.count() > 1:   # keep the trailing stretch
             item = self.message_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
-                widget.deleteLater()
+                widget.setParent(None)     # detach from parent → invisible NOW
+                widget.deleteLater()       # free memory asynchronously
 
     def _append_bubble(self, text, is_user):
         bubble = MessageBubble(text, is_user)
@@ -403,9 +496,12 @@ class AIChatView(QWidget):
         self.message_input.clear()
         self._reload_conversations(select_id=conversation_id)
         self.message_input.setFocus()
+        self._start_ai_reply(conversation_id)
 
     def _update_send_state(self):
-        self.send_button.setEnabled(bool(self.message_input.toPlainText().strip()))
+        has_text = bool(self.message_input.toPlainText().strip())
+        is_busy = self._ai_worker is not None
+        self.send_button.setEnabled(has_text and not is_busy)
 
     def retranslate_ui(self):
         self.back_button.setToolTip(tr("Back to tasks"))
@@ -424,3 +520,73 @@ class AIChatView(QWidget):
             item = self.conversation_list.item(row)
             if item is not None and not conversation["title"]:
                 item.setText(tr("New Chat"))
+
+    def _start_ai_reply(self, conversation_id):
+        if self._ai_worker is not None:
+            return
+
+        messages = [{"role": "system", "content": self.provider.SYSTEM_PROMPT}]
+        for msg in self.service.get_chat_messages(conversation_id):
+            messages.append({"role": msg["role"], "content": msg["content"]})
+
+        self._streaming_text = ""
+        self._streaming_bubble = MessageBubble("", is_user=False)
+        self.message_layout.insertWidget(
+            self.message_layout.count() - 1, self._streaming_bubble
+        )
+        self._scroll_to_bottom()
+
+        self._ai_worker = AIWorker(self.provider, messages)
+        self._ai_worker.chunk_received.connect(self._on_ai_chunk)
+        self._ai_worker.finished_ok.connect(
+            lambda full: self._on_ai_finished(conversation_id, full)
+        )
+        self._ai_worker.finished_error.connect(self._on_ai_error)
+        self._ai_worker.start()
+        self._update_send_state()
+
+    def _on_ai_chunk(self, chunk):
+        if self._streaming_bubble is None:
+            return
+        self._streaming_text += chunk
+        self._streaming_bubble.set_text(self._streaming_text)
+        self._scroll_to_bottom()
+
+    def _on_ai_finished(self, conversation_id, full_text):
+        if self._streaming_bubble is not None:
+            self._streaming_bubble.setParent(None)
+            self._streaming_bubble.deleteLater()
+            self._streaming_bubble = None
+        self._streaming_text = ""
+        if full_text.strip():
+            self.service.add_chat_message(conversation_id, full_text, role="assistant")
+            self._reload_conversations(select_id=conversation_id)
+        if self._ai_worker is not None:
+            self._ai_worker.deleteLater()
+            self._ai_worker = None
+        self._update_send_state()
+
+    def _on_ai_error(self, error):
+        if self._streaming_bubble is not None:
+            self._streaming_bubble.setParent(None)
+            self._streaming_bubble.deleteLater()
+            self._streaming_bubble = None
+        self._streaming_text = ""
+        if self._ai_worker is not None:
+            self._ai_worker.deleteLater()
+            self._ai_worker = None
+
+        friendly = (
+            "Could not reach Ollama. Install: https://ollama.com — then run: "
+            "`ollama pull llama3.2`. Error: " + error
+        )
+        error_bubble = MessageBubble(friendly, is_user=False)
+        error_bubble.bubble.setStyleSheet(
+            "QLabel { background: #FFF2F0; color: #C03030;"
+            "border-radius: 14px; padding: 8px 12px; font-size: 12px; }"
+        )
+        self.message_layout.insertWidget(
+            self.message_layout.count() - 1, error_bubble
+        )
+        self._scroll_to_bottom()
+        self._update_send_state()
