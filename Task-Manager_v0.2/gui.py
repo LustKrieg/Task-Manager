@@ -52,6 +52,12 @@ class MainWindow(QMainWindow):
         self.trash_tab = self.sidebar.trash_tab
 
         self.search_input.textChanged.connect(self.on_search_changed)
+        
+        # NEW: Debounce timer for search
+        self.search_timer = QTimer(self)
+        self.search_timer.setSingleShot(True)
+        self.search_timer.setInterval(200)  # Wait 200ms before triggering
+        self.search_timer.timeout.connect(self.refresh_tasks)
 
         self.active_tab.clicked.connect(lambda: self.switch_tab("active"))
         self.completed_tab.clicked.connect(lambda: self.switch_tab("completed"))
@@ -434,7 +440,9 @@ class MainWindow(QMainWindow):
     def on_search_changed(self, text):
         self.search_text = text.strip().lower()
         if self.current_tab != "settings":
-            self.refresh_tasks()
+            # Restart the timer on every keystroke. It only fires when
+            # the user pauses typing for 200ms.
+            self.search_timer.start()
 
     def on_language_changed(self, language):
         set_ui_language(language)
