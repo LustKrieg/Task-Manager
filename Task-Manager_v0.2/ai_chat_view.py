@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
 from localization import tr
 from styles import ROUNDED_MENU_STYLE
 from ai_provider import OllamaProvider
-from ai_worker import AIWorker
+from ai_worker import AIWorker, TitleWorker
 
 class MessageBubble(QWidget):
     edit_saved = pyqtSignal(int, str)
@@ -159,6 +159,7 @@ class AIChatView(QWidget):
         self.service = service
         self.provider = OllamaProvider()
         self._ai_worker = None
+        self._title_worker = None
         self._streaming_bubble = None
         self._streaming_bubble = None
         self._streaming_text = ""
@@ -457,6 +458,8 @@ class AIChatView(QWidget):
         self._scroll_to_bottom()
 
     def _clear_messages(self):
+        self._streaming_bubble = None
+        self._streaming_text = ""
         while self.message_layout.count() > 1:   # keep the trailing stretch
             item = self.message_layout.takeAt(0)
             widget = item.widget()
@@ -488,15 +491,45 @@ class AIChatView(QWidget):
         content = self.message_input.toPlainText().strip()
         if not content:
             return
+            
         if self.current_conversation_id is None:
             self.current_conversation_id = self.service.create_chat_conversation()
 
         conversation_id = self.current_conversation_id
+        
+        # Check if this is the FIRST message in this conversation
+        # BEFORE we add the new one
+        is_first_message = len(self.service.get_chat_messages(conversation_id)) == 0
+        
         self.service.add_chat_message(conversation_id, content)
         self.message_input.clear()
+        
         self._reload_conversations(select_id=conversation_id)
         self.message_input.setFocus()
+        
+        if is_first_message:
+            self._title_worker = TitleWorker(self.provider, content)
+            self._title_worker.title_generated.connect(
+                lambda t: self._on_title_generated(conversation_id, t)
+            )
+            self._title_worker.start()
+            
         self._start_ai_reply(conversation_id)
+
+    def _on_title_generated(self, conversation_id, title):
+        print(f"Generated title: {title}")
+        self.service.update_chat_conversation_title(conversation_id, title)
+        
+        # Update the specific item in the sidebar list
+        for i in range(self.conversation_list.count()):
+            item = self.conversation_list.item(i)
+            if item.data(Qt.ItemDataRole.UserRole) == conversation_id:
+                item.setText(title)
+                break
+                
+        # Update the chat header if it's the currently open chat
+        if self.current_conversation_id == conversation_id:
+            self.title_label.setText(title)
 
     def _update_send_state(self):
         has_text = bool(self.message_input.toPlainText().strip())
@@ -559,8 +592,12 @@ class AIChatView(QWidget):
             self._streaming_bubble = None
         self._streaming_text = ""
         if full_text.strip():
-            self.service.add_chat_message(conversation_id, full_text, role="assistant")
-            self._reload_conversations(select_id=conversation_id)
+            try:
+                self.service.add_chat_message(conversation_id, full_text, role="assistant")
+                self._reload_conversations(select_id=conversation_id)
+            except ValueError:
+                # Conversation was deleted mid-reply; nothing to save
+                pass
         if self._ai_worker is not None:
             self._ai_worker.deleteLater()
             self._ai_worker = None
@@ -575,6 +612,14 @@ class AIChatView(QWidget):
         if self._ai_worker is not None:
             self._ai_worker.deleteLater()
             self._ai_worker = None
+
+        # If the conversation was deleted mid-reply, don't show an error bubble
+        try:
+            if self.current_conversation_id is None:
+                self._update_send_state()
+                return
+        except RuntimeError:
+            pass
 
         friendly = (
             "Could not reach Ollama. Install: https://ollama.com — then run: "
