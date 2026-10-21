@@ -204,9 +204,9 @@ class AIChatView(QWidget):
         sidebar_layout.addWidget(self.history_title)
 
         self.conversation_list = QListWidget()
-        self.conversation_list.setSelectionMode(
-            QListWidget.SelectionMode.SingleSelection
-        )
+        self.conversation_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+        self.conversation_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.conversation_list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.conversation_list.setStyleSheet("""
             QListWidget {
                 border: none;
@@ -252,6 +252,7 @@ class AIChatView(QWidget):
         self.title_label = QLabel(tr("AI Chat"))
         self.title_label.setFont(QFont("Arial", 19, QFont.Weight.Bold))
         self.title_label.setStyleSheet("color: #202124;")
+        self.title_label.setWordWrap(True)
         self.status_label = QLabel(
             tr("Messages are saved locally. AI replies aren't connected yet.")
         )

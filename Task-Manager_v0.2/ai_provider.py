@@ -64,7 +64,7 @@ class OllamaProvider:
                 title = title.replace('"', '').replace("'", "").strip()
                 if '\n' in title:
                     title = title.split('\n')[0]
-                return title[:30] if title else " ".join(first_message.split()[:3])
+                return title[:80] if title else " ".join(first_message.split()[:3])
         except Exception as e:
             print(f"Title generation failed: {e}")
             # Smart fallback: just take the first 3 words (prevents horizontal scroll)
