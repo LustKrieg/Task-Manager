@@ -582,9 +582,16 @@ class AIChatView(QWidget):
     def _on_ai_chunk(self, chunk):
         if self._streaming_bubble is None:
             return
+        # Check if the user is already at the bottom (or within 40 pixels of it)
+        # BEFORE we add the new text and increase the height.
+        scrollbar = self.message_scroll.verticalScrollBar()
+        was_at_bottom = (scrollbar.maximum() - scrollbar.value()) <= 40
+        
         self._streaming_text += chunk
         self._streaming_bubble.set_text(self._streaming_text)
-        self._scroll_to_bottom()
+        # Only auto-scroll if they were already at the bottom
+        if was_at_bottom:
+            self._scroll_to_bottom()
 
     def _on_ai_finished(self, conversation_id, full_text):
         if self._streaming_bubble is not None:
