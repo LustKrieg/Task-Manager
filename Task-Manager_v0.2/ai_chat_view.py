@@ -366,7 +366,7 @@ class AIChatView(QWidget):
         self.send_button.setToolTip(tr("Send"))
         self.send_button.setAccessibleName(tr("Send"))
         self.send_button.setFixedSize(38, 38)
-        self.send_button.clicked.connect(self.send_message)
+        self.send_button.clicked.connect(self._on_send_or_stop)
         composer_layout.addWidget(self.send_button)
         chat_layout.addWidget(composer)
         root_layout.addWidget(chat_panel, 1)
@@ -488,6 +488,15 @@ class AIChatView(QWidget):
         self._reload_conversations(select_id=conversation_id)
         self.message_input.setFocus()
 
+    def _on_send_or_stop(self):
+        # If the AI is currently working, the button acts as a Stop button
+        if self._ai_worker is not None:
+            self._ai_worker.requestInterruption()
+            self.send_button.setEnabled(False)  # prevent double-clicks while closing
+            return
+        # Otherwise, it acts as the normal Send button
+        self.send_message()
+
     def send_message(self):
         content = self.message_input.toPlainText().strip()
         if not content:
@@ -533,9 +542,26 @@ class AIChatView(QWidget):
             self.title_label.setText(title)
 
     def _update_send_state(self):
-        has_text = bool(self.message_input.toPlainText().strip())
         is_busy = self._ai_worker is not None
-        self.send_button.setEnabled(has_text and not is_busy)
+        if is_busy:
+            # Show Stop button
+            self.send_button.setText("\u25A0")  # ■ Black square
+            self.send_button.setToolTip(tr("Stop generating"))
+            self.send_button.setEnabled(True)   # Always enable it while busy
+            self.send_button.setStyleSheet("""
+                QPushButton { border: none; border-radius: 6px; background: #3A3A3C; color: #FFFFFF; font-size: 16px; font-weight: 600; }
+                QPushButton:disabled { background: #D1D1D6; }
+            """)
+        else:
+            # Show Send button
+            self.send_button.setText("\u2191")  # ↑ Up arrow
+            self.send_button.setToolTip(tr("Send"))
+            has_text = bool(self.message_input.toPlainText().strip())
+            self.send_button.setEnabled(has_text)
+            self.send_button.setStyleSheet("""
+                QPushButton { border: none; border-radius: 6px; background: #3A3A3C; color: #FFFFFF; font-size: 16px; font-weight: 600; }
+                QPushButton:disabled { background: #D1D1D6; }
+            """)
 
     def retranslate_ui(self):
         self.back_button.setToolTip(tr("Back to tasks"))

@@ -11,7 +11,7 @@ class OllamaProvider:
         self.host = host or self.DEFAULT_HOST
         self.model = model or self.DEFAULT_MODEL
 
-    def chat_stream(self, messages, on_chunk):
+    def chat_stream(self, messages, on_chunk, should_stop=None):
         payload = {
             "model": self.model,
             "messages": messages,
@@ -25,6 +25,10 @@ class OllamaProvider:
         full_text_parts = []
         with urllib.request.urlopen(req, timeout=180) as response:
             for raw_line in response:
+                # NEW: Check if user hit the stop button
+                if should_stop and should_stop():
+                    break
+                    
                 line = raw_line.strip()
                 if not line:
                     continue

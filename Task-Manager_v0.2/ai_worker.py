@@ -14,7 +14,9 @@ class AIWorker(QThread):
     def run(self):
         try:
             full_text = self.provider.chat_stream(
-                self.messages, self.chunk_received.emit
+                self.messages,
+                self.chunk_received.emit,
+                should_stop=self.isInterruptionRequested
             )
             self.finished_ok.emit(full_text)
         except Exception as exc:
