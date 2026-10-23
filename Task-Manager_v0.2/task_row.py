@@ -27,6 +27,10 @@ class DetailsPopup(QWidget):
         self.host_window = host_window
         self._saved = False
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+
+        self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+
         self._application = QApplication.instance()
         if self._application is not None:
             self._application.installEventFilter(self)
@@ -91,13 +95,21 @@ class DetailsPopup(QWidget):
             QTimer.singleShot(0, self.close_if_app_deactivated)
 
         if event.type() == QEvent.Type.MouseButtonPress and self.isVisible():
-            is_child_widget = isinstance(watched, QWidget) and self.isAncestorOf(watched)
+            if not isinstance(watched, QWidget):
+                return super().eventFilter(watched, event)
+                
+            clicked_window = watched.window()
+            
+            # Ignore clicks inside the Calendar or Time popups
+            if isinstance(clicked_window, (CalendarPopup, TimePopup)):
+                return super().eventFilter(watched, event)
+                
+            is_child = self.isAncestorOf(watched)
             click_position = self.mapFromGlobal(event.globalPosition().toPoint())
-            if (
-                not is_child_widget
-                and not self.rect().contains(click_position)
-            ):
+            
+            if not is_child and not self.rect().contains(click_position):
                 self.close()
+                
         return super().eventFilter(watched, event)
 
     def close_if_app_deactivated(self):
@@ -188,6 +200,20 @@ class PopupTextEdit(ScrollOnDemandTextEdit):
             self.setFixedHeight(natural_height)
             self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self.verticalScrollBar().hide()
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                super().keyPressEvent(event)  # Shift+Enter = newline
+                return
+            
+            # Pressing Enter without Shift closes the popup,
+            # which automatically triggers the save_callback
+            if self.window() is not None:
+                self.window().close()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -438,6 +464,7 @@ class DateTimeControl(QWidget):
             self.calendar_popup.destroyed.connect(self._clear_popup_anchor)
             self.calendar_popup.move(popup_position.x() - 4, popup_position.y() + 2)
             self.calendar_popup.show()
+            self.calendar_popup.raise_()
             if self.time_popup is not None:
                 self.time_popup.close()
                 self.time_popup = None
@@ -1015,7 +1042,7 @@ class TaskRow(QWidget):
             main_rect.top() + 12,
             min(popup_y, main_rect.bottom() - popup.height() - 12),
         )
-        popup.move(popup_parent.mapFromGlobal(QPoint(popup_x, popup_y)))
+        popup.move(popup_x, popup_y)
 
         self.info_button.show()
         popup.show()
