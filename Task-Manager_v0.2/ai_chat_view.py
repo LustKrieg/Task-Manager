@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QToolButton,
     QVBoxLayout,
     QWidget,
+    QSizePolicy
 )
 from localization import tr
 from styles import ROUNDED_MENU_STYLE
@@ -151,6 +152,38 @@ class ChatInput(QPlainTextEdit):
             return
         super().keyPressEvent(event)
 
+class SidebarChatItem(QWidget):
+    def __init__(self, text=""):
+        super().__init__()
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 9, 8, 9) 
+        layout.setSpacing(6)
+
+        self.label = QLabel(text)
+        self.label.setStyleSheet("color: #3A3A3C; font-size: 13px; background: transparent;")
+        self.label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+        self.label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        
+        self.circle = QLabel()
+        self.circle.setFixedSize(8, 8)
+        self.circle.hide()
+
+        layout.addWidget(self.label, 1)
+        layout.addWidget(self.circle, 0)
+
+    def set_text(self, text):
+        self.label.setText(text)
+
+    def set_circle_alpha(self, alpha):
+        self.circle.show()
+        self.circle.setStyleSheet(f"background-color: rgba(0, 122, 255, {alpha}); border-radius: 4px;")
+
+    def hide_circle(self):
+        self.circle.hide()
+
 class AIChatView(QWidget):
     back_requested = pyqtSignal()
 
@@ -214,11 +247,10 @@ class AIChatView(QWidget):
                 outline: none;
             }
             QListWidget::item {
-                color: #3A3A3C;
                 border-radius: 6px;
-                padding: 9px 8px;
+                padding: 0px; /* Let the custom widget handle padding */
             }
-            QListWidget::item:selected { background: #E1E2E5; color: #202124; }
+            QListWidget::item:selected { background: #E1E2E5; }
             QListWidget::item:hover:!selected { background: #EBECEE; }
         """)
         self.conversation_list.currentItemChanged.connect(
@@ -253,6 +285,7 @@ class AIChatView(QWidget):
         self.title_label.setFont(QFont("Arial", 19, QFont.Weight.Bold))
         self.title_label.setStyleSheet("color: #202124;")
         self.title_label.setWordWrap(True)
+        self.title_label.setMinimumHeight(30)
         self.status_label = QLabel(
             tr("Messages are saved locally. AI replies aren't connected yet.")
         )
@@ -375,26 +408,56 @@ class AIChatView(QWidget):
         self._update_send_state()
 
     def _reload_conversations(self, select_id=None):
+        # 1. Safely finish any running animation before clearing the list
+        if hasattr(self, '_typing_timer') and self._typing_timer and self._typing_timer.isActive():
+            self._typing_timer.stop()
+            self._cursor_timer.stop()
+            
+            anim_conv_id = getattr(self, '_anim_conv_id', None)
+            anim_full_title = getattr(self, '_anim_full_title', "")
+            
+            if anim_conv_id is not None and anim_full_title:
+                self.service.update_chat_conversation_title(anim_conv_id, anim_full_title)
+                if self.current_conversation_id == anim_conv_id:
+                    self.title_label.setText(anim_full_title)
+        
+        # 2. Clear the widget reference so any pending timer ticks fail gracefully
+        self._anim_widget = None
+
+        # 3. Standard reload logic
         conversations = self.service.get_chat_conversations()
         self.conversation_list.blockSignals(True)
         self.conversation_list.clear()
+        
         selected_item = None
         for conversation in conversations:
-            item = QListWidgetItem(conversation["title"] or tr("New Chat"))
+            item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, conversation["id"])
+            
+            title = conversation["title"] or tr("New Chat")
+            item.setData(Qt.ItemDataRole.UserRole + 1, title)
+            
             self.conversation_list.addItem(item)
+            
+            # Create the custom widget for the pulsing circle animation
+            widget = SidebarChatItem(title)
+            item.setSizeHint(widget.sizeHint())  # Fixes the squished/0-height row
+            self.conversation_list.setItemWidget(item, widget)
+            
             if conversation["id"] == select_id:
                 selected_item = item
 
         if selected_item is None and conversations:
             selected_item = self.conversation_list.item(0)
+            
         self.conversation_list.setCurrentItem(selected_item)
         self.conversation_list.blockSignals(False)
         self.history_empty_label.setVisible(not conversations)
 
+        # 4. Update the main chat view
         if selected_item is None:
             self.current_conversation_id = None
-            self.message_input.clear()
+            self._clear_messages()
             self.title_label.setText(tr("AI Chat"))
         else:
             self._load_conversation(selected_item)
@@ -408,7 +471,7 @@ class AIChatView(QWidget):
         if item is None:
             return
         conversation_id = item.data(Qt.ItemDataRole.UserRole)
-        current_title = item.text()
+        current_title = item.data(Qt.ItemDataRole.UserRole + 1)
 
         menu = QMenu(self.conversation_list)
         menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
@@ -455,7 +518,7 @@ class AIChatView(QWidget):
                 message["content"],
                 is_user=(message["role"] == "user"),
             )
-        self.title_label.setText(item.text())
+        self.title_label.setText(item.data(Qt.ItemDataRole.UserRole + 1))
         self._scroll_to_bottom()
 
     def _clear_messages(self):
@@ -527,7 +590,6 @@ class AIChatView(QWidget):
         self._start_ai_reply(conversation_id)
 
     def _on_title_generated(self, conversation_id, title):
-        # Find the item in the sidebar
         item = None
         for i in range(self.conversation_list.count()):
             it = self.conversation_list.item(i)
@@ -536,34 +598,38 @@ class AIChatView(QWidget):
                 break
         
         if item is None:
-            # Fallback if the item is not found (shouldn't happen)
             self.service.update_chat_conversation_title(conversation_id, title)
             if self.current_conversation_id == conversation_id:
                 self.title_label.setText(title)
             return
+            
+        item.setData(Qt.ItemDataRole.UserRole + 1, title)
+        widget = self.conversation_list.itemWidget(item)
+        self._animate_title(item, widget, title, conversation_id)
 
-        # Start the animation sequence
-        self._animate_title(item, title, conversation_id)
-
-    def _animate_title(self, item, full_title, conversation_id):
-        """Reveal the title character-by-character, then save it."""
-        # Store animation state on the widget to prevent garbage collection
+    def _animate_title(self, item, widget, full_title, conversation_id):
         self._anim_title = ""
         self._anim_index = 0
         self._anim_item = item
+        self._anim_widget = widget
         self._anim_full_title = full_title
         self._anim_conv_id = conversation_id
-        self._cursor_visible = True
+        self._anim_step = 0
 
-        # 1. Timer for typing characters
+        if self._anim_widget:
+            self._anim_widget.set_text("")
+        if self.current_conversation_id == self._anim_conv_id:
+            self.title_label.setText("")
+
+        # 1. Typewriter timer (80ms)
         self._typing_timer = QTimer(self)
-        self._typing_timer.setInterval(40) # 40ms per character
+        self._typing_timer.setInterval(80) 
         self._typing_timer.timeout.connect(self._on_typing_tick)
 
-        # 2. Timer for blinking the cursor
+        # 2. Smooth fade timer (50ms)
         self._cursor_timer = QTimer(self)
-        self._cursor_timer.setInterval(400) # Blink every 400ms
-        self._cursor_timer.timeout.connect(self._on_cursor_blink)
+        self._cursor_timer.setInterval(50) 
+        self._cursor_timer.timeout.connect(self._on_cursor_fade)
 
         self._typing_timer.start()
         self._cursor_timer.start()
@@ -572,25 +638,40 @@ class AIChatView(QWidget):
         if self._anim_index < len(self._anim_full_title):
             self._anim_title += self._anim_full_title[self._anim_index]
             self._anim_index += 1
-            cursor = "|" if self._cursor_visible else " "
-            self._anim_item.setText(self._anim_title + cursor)
+            if self._anim_widget:
+                self._anim_widget.set_text(self._anim_title)
         else:
-            # Animation finished
             self._typing_timer.stop()
             self._cursor_timer.stop()
-            self._anim_item.setText(self._anim_full_title)
-            
-            # Save the final title to the database and update the header
+            if self._anim_widget:
+                self._anim_widget.set_text(self._anim_full_title)
+                self._anim_widget.hide_circle()
+                
             self.service.update_chat_conversation_title(self._anim_conv_id, self._anim_full_title)
             if self.current_conversation_id == self._anim_conv_id:
                 self.title_label.setText(self._anim_full_title)
 
-    def _on_cursor_blink(self):
-        self._cursor_visible = not self._cursor_visible
-        # Only update text if we are still typing
-        if self._anim_index < len(self._anim_full_title):
-            cursor = "|" if self._cursor_visible else " "
-            self._anim_item.setText(self._anim_title + cursor)
+    def _on_cursor_fade(self):
+        import math
+        self._anim_step += 1
+        
+        # Sine wave between 0.0 (dim) and 1.0 (full color)
+        # Speed of 0.15 means one full pulse every ~2 seconds
+        t = (math.sin(self._anim_step * 0.15) + 1) / 2 
+        
+        # Update Sidebar (Real QLabel Circle)
+        if self._anim_widget:
+            alpha = int(255 * t)
+            self._anim_widget.set_circle_alpha(alpha)
+            
+        # Update Main Header (HTML color interpolation)
+        if self.current_conversation_id == self._anim_conv_id:
+            # Blend between light blue (180, 210, 255) and full blue (0, 122, 255)
+            r = int(180 + (0 - 180) * t)
+            g = int(210 + (122 - 210) * t)
+            b = int(255 + (255 - 255) * t)
+            color = f"rgb({r}, {g}, {b})"
+            self.title_label.setText(f"{self._anim_title}<span style='color: {color}; font-size: 18px; vertical-align: middle;'>●</span>")
 
     def _update_send_state(self):
         is_busy = self._ai_worker is not None
