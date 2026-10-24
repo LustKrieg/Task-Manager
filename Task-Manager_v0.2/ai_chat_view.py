@@ -527,19 +527,70 @@ class AIChatView(QWidget):
         self._start_ai_reply(conversation_id)
 
     def _on_title_generated(self, conversation_id, title):
-        print(f"Generated title: {title}")
-        self.service.update_chat_conversation_title(conversation_id, title)
-        
-        # Update the specific item in the sidebar list
+        # Find the item in the sidebar
+        item = None
         for i in range(self.conversation_list.count()):
-            item = self.conversation_list.item(i)
-            if item.data(Qt.ItemDataRole.UserRole) == conversation_id:
-                item.setText(title)
+            it = self.conversation_list.item(i)
+            if it.data(Qt.ItemDataRole.UserRole) == conversation_id:
+                item = it
                 break
-                
-        # Update the chat header if it's the currently open chat
-        if self.current_conversation_id == conversation_id:
-            self.title_label.setText(title)
+        
+        if item is None:
+            # Fallback if the item is not found (shouldn't happen)
+            self.service.update_chat_conversation_title(conversation_id, title)
+            if self.current_conversation_id == conversation_id:
+                self.title_label.setText(title)
+            return
+
+        # Start the animation sequence
+        self._animate_title(item, title, conversation_id)
+
+    def _animate_title(self, item, full_title, conversation_id):
+        """Reveal the title character-by-character, then save it."""
+        # Store animation state on the widget to prevent garbage collection
+        self._anim_title = ""
+        self._anim_index = 0
+        self._anim_item = item
+        self._anim_full_title = full_title
+        self._anim_conv_id = conversation_id
+        self._cursor_visible = True
+
+        # 1. Timer for typing characters
+        self._typing_timer = QTimer(self)
+        self._typing_timer.setInterval(40) # 40ms per character
+        self._typing_timer.timeout.connect(self._on_typing_tick)
+
+        # 2. Timer for blinking the cursor
+        self._cursor_timer = QTimer(self)
+        self._cursor_timer.setInterval(400) # Blink every 400ms
+        self._cursor_timer.timeout.connect(self._on_cursor_blink)
+
+        self._typing_timer.start()
+        self._cursor_timer.start()
+
+    def _on_typing_tick(self):
+        if self._anim_index < len(self._anim_full_title):
+            self._anim_title += self._anim_full_title[self._anim_index]
+            self._anim_index += 1
+            cursor = "|" if self._cursor_visible else " "
+            self._anim_item.setText(self._anim_title + cursor)
+        else:
+            # Animation finished
+            self._typing_timer.stop()
+            self._cursor_timer.stop()
+            self._anim_item.setText(self._anim_full_title)
+            
+            # Save the final title to the database and update the header
+            self.service.update_chat_conversation_title(self._anim_conv_id, self._anim_full_title)
+            if self.current_conversation_id == self._anim_conv_id:
+                self.title_label.setText(self._anim_full_title)
+
+    def _on_cursor_blink(self):
+        self._cursor_visible = not self._cursor_visible
+        # Only update text if we are still typing
+        if self._anim_index < len(self._anim_full_title):
+            cursor = "|" if self._cursor_visible else " "
+            self._anim_item.setText(self._anim_title + cursor)
 
     def _update_send_state(self):
         is_busy = self._ai_worker is not None
